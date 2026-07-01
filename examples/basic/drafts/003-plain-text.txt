@@ -1,0 +1,7 @@
+This is a plain TXT sample.
+
+Each non-empty line is rendered as a separate reviewable paragraph in the current version.
+
+This mode works well for converted or desensitized documents where one line already represents one logical paragraph.
+
+For hand-written TXT files, a future configuration may support blank-line paragraph grouping.

@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+# Routine local build outputs are ignored. If a release needs browser-ready
+# demo HTML, place a selected regenerated copy under examples/generated/.
+/output/
+/review*.md
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+*.log
+.DS_Store
+Thumbs.db
