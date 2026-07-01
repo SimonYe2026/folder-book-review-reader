@@ -6,6 +6,8 @@ The default demo UI is Chinese (`locale: zh-CN`). English is available as an int
 
 It builds one self-contained `reader.html` that can be opened in a browser. The reader supports search, filtered navigation, adjustable layout, dark mode, and a local review board that exports grouped `review.md`.
 
+Requirements: Python 3.10 or newer. The core reader uses only the Python standard library and does not require `pip`, npm, or a frontend framework.
+
 ## Quick Start
 
 ```powershell

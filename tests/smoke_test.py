@@ -172,7 +172,10 @@ review:
     if not license_file.exists():
         raise AssertionError("LICENSE file is required before release")
     assert_contains(license_file, ["MIT License", "folder-book-reader contributors"])
+    assert_contains(ROOT / "README.md", ["Python 3.10 or newer", "Python standard library"])
+    assert_contains(ROOT / "README.zh-CN.md", ["Python 3.10 或更高版本", "Python 标准库"])
 
+    (ROOT / "output").mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(dir=ROOT / "output") as temp_root:
         temp_path = Path(temp_root)
         source_dir = temp_path / "source"

@@ -73,5 +73,5 @@ stats:
 - `order` 可选：`natural`、`natural_desc`、`modified_desc`。
 - `text.paragraph_mode` 可选：`line` 表示一行一段，`blank_line` 表示空行分段。
 - `locale: zh-CN` 是默认中文界面；英文示例见 `workspace.en.config.md`。
-- `.docx` 来源请先用 `tools/convert_docs.py` 转成 `.txt`，再用阅读器打包。
+- `.docx` 来源请先用 `tools/convert_docs.py` 转成 `.md`，再用阅读器打包。
 - `.doc`、`.rtf`、`.pdf`、`.epub` 不属于当前开源承诺。
