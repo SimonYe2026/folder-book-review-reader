@@ -5,7 +5,7 @@ source_dir: ./examples/conversion-fixtures/converted
 recursive: false
 flatten: true
 include:
-  - "*.md"
+  - "*.docx.md"
 exclude:
   - "__never_match__"
 order: natural

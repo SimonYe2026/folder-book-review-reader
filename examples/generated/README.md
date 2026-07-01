@@ -14,15 +14,27 @@ Current selected demos:
 | File | Source config | Build command | Content |
 | --- | --- | --- | --- |
 | `basic-reader.demo.html` | `workspace.config.md` | `python build_reader.py workspace.config.md --overwrite` | Public bilingual example drafts only. |
-| `project-docs.demo.html` | `workspace.docs.config.md` | `python build_reader.py workspace.docs.config.md --overwrite` | Public README and docs files only. |
+| `basic-reader.en.demo.html` | `workspace.en.config.md` | `python build_reader.py workspace.en.config.md --overwrite` | Public bilingual example drafts with English UI labels. |
+| `project-docs.demo.html` | `workspace.docs.config.md` | `python build_reader.py workspace.docs.config.md --overwrite` | Public README and docs files with Chinese UI labels. |
+| `project-docs.en.demo.html` | `workspace.docs.en.config.md` | `python build_reader.py workspace.docs.en.config.md --overwrite` | Public README and docs files with English UI labels. |
 
 Regenerate and refresh these demos before a release:
 
 ```powershell
 python build_reader.py workspace.config.md --overwrite
+python build_reader.py workspace.en.config.md --overwrite
 python build_reader.py workspace.docs.config.md --overwrite
+python build_reader.py workspace.docs.en.config.md --overwrite
 Copy-Item output/reader.html examples/generated/basic-reader.demo.html
+Copy-Item output/reader.en.html examples/generated/basic-reader.en.demo.html
 Copy-Item output/project-docs.html examples/generated/project-docs.demo.html
+Copy-Item output/project-docs.en.html examples/generated/project-docs.en.demo.html
+```
+
+Or run:
+
+```powershell
+python tools/build_demos.py
 ```
 
 Do not put personal review files, private drafts, or temporary test output here.

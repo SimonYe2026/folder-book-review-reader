@@ -1312,7 +1312,7 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
     }}
 
     function label(key) {{
-      return labels[key] || key;
+      return Object.prototype.hasOwnProperty.call(labels, key) ? labels[key] : key;
     }}
 
     function readingMinutes(wordCount) {{

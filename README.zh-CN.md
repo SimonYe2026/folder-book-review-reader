@@ -32,12 +32,6 @@ output/reader.html
 python serve_reader.py
 ```
 
-运行 smoke test：
-
-```powershell
-python tests/smoke_test.py
-```
-
 生成说明文档阅读器：
 
 ```powershell
@@ -50,10 +44,21 @@ python build_reader.py workspace.docs.config.md
 output/project-docs.html
 ```
 
-如果想先直接查看效果，可以打开 `examples/generated/` 中选择性提交的静态示例：
+## 在线 Demo
+
+GitHub Pages 已启用，可以直接打开：
+
+- 中文基础 demo：`https://simonye2026.github.io/folder-book-review-reader/examples/generated/basic-reader.demo.html`
+- 英文基础 demo：`https://simonye2026.github.io/folder-book-review-reader/examples/generated/basic-reader.en.demo.html`
+- 中文项目文档 demo：`https://simonye2026.github.io/folder-book-review-reader/examples/generated/project-docs.demo.html`
+- 英文项目文档 demo：`https://simonye2026.github.io/folder-book-review-reader/examples/generated/project-docs.en.demo.html`
+
+同样的浏览器可打开示例也提交在 `examples/generated/`：
 
 - `examples/generated/basic-reader.demo.html`
+- `examples/generated/basic-reader.en.demo.html`
 - `examples/generated/project-docs.demo.html`
+- `examples/generated/project-docs.en.demo.html`
 
 ## 功能
 
@@ -143,6 +148,22 @@ output/project-docs.html
 ```powershell
 python tools/convert_docs.py examples/conversion-fixtures/source -o examples/conversion-fixtures/converted
 ```
+
+## 开发与发布维护
+
+修改或发布前运行 smoke test：
+
+```powershell
+python tests/smoke_test.py
+```
+
+刷新已提交的 demo HTML：
+
+```powershell
+python tools/build_demos.py
+```
+
+`output/` 是日常本地构建目录，不应提交。公开 demo HTML 放在 `examples/generated/`。
 
 ## 安全提示
 

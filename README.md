@@ -32,13 +32,7 @@ Optional local preview:
 python serve_reader.py
 ```
 
-Run the smoke test:
-
-```powershell
-python tests/smoke_test.py
-```
-
-Build the documentation reader:
+Build a reader for the project documentation:
 
 ```powershell
 python build_reader.py workspace.docs.config.md
@@ -50,10 +44,21 @@ Open:
 output/project-docs.html
 ```
 
-Browser-ready demos are kept in `examples/generated/` for users who want to inspect the reader before running commands:
+## Online Demos
+
+GitHub Pages demos are available here:
+
+- Chinese basic demo: `https://simonye2026.github.io/folder-book-review-reader/examples/generated/basic-reader.demo.html`
+- English basic demo: `https://simonye2026.github.io/folder-book-review-reader/examples/generated/basic-reader.en.demo.html`
+- Chinese project docs demo: `https://simonye2026.github.io/folder-book-review-reader/examples/generated/project-docs.demo.html`
+- English project docs demo: `https://simonye2026.github.io/folder-book-review-reader/examples/generated/project-docs.en.demo.html`
+
+The same browser-ready demo files are also checked into `examples/generated/`:
 
 - `examples/generated/basic-reader.demo.html`
+- `examples/generated/basic-reader.en.demo.html`
 - `examples/generated/project-docs.demo.html`
+- `examples/generated/project-docs.en.demo.html`
 
 ## What It Does
 
@@ -140,6 +145,22 @@ Current converter command:
 ```powershell
 python tools/convert_docs.py examples/conversion-fixtures/source -o examples/conversion-fixtures/converted
 ```
+
+## Development
+
+Run the smoke test before changing or publishing the project:
+
+```powershell
+python tests/smoke_test.py
+```
+
+Refresh checked-in demo HTML files:
+
+```powershell
+python tools/build_demos.py
+```
+
+Routine files under `output/` are local build outputs and should stay uncommitted. Public demo HTML belongs in `examples/generated/`.
 
 ## Safety
 

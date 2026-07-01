@@ -77,6 +77,8 @@ Current shortcuts:
 
 When focus is inside an input, select, or textarea, these shortcuts do not trigger navigation or the review dialog.
 
+In browsers such as Microsoft Edge, selecting text may show the browser's own mini menu. That menu can cover the page or capture key input, so pressing `R` after selecting text may not always open the review dialog. Firefox usually does not show this issue. If it happens, click the floating review button or the review button beside a paragraph.
+
 ## Reading Settings
 
 You can adjust:
@@ -96,7 +98,7 @@ The reset layout button resets reading layout preferences but does not delete re
 
 There are two ways to add a review note:
 
-- Select text and press `R`.
+- Select text and click the floating review button, or press `R`.
 - Click the review button beside a paragraph.
 
 If text is selected, the review dialog uses the selected text as the quote.

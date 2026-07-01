@@ -6,6 +6,7 @@ import sys
 import shutil
 import tempfile
 import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -167,6 +168,7 @@ review:
         raise AssertionError("reader data should not be able to break out of the script tag")
 
     run([sys.executable, "-m", "py_compile", "build_reader.py", "serve_reader.py", "tools/convert_docs.py"])
+    run([sys.executable, "-m", "py_compile", "tools/build_demos.py"])
 
     license_file = ROOT / "LICENSE"
     if not license_file.exists():
@@ -273,6 +275,7 @@ review:
     run([sys.executable, "build_reader.py", "workspace.config.md"])
     run([sys.executable, "build_reader.py", "workspace.en.config.md"])
     run([sys.executable, "build_reader.py", "workspace.docs.config.md"])
+    run([sys.executable, "build_reader.py", "workspace.docs.en.config.md"])
     run([sys.executable, "build_reader.py", "workspace.converted.config.md", "--dry-run"])
     run([sys.executable, "build_reader.py", "workspace.converted.config.md"])
 
@@ -320,8 +323,10 @@ review:
         [
             "(Unknown link, check the source file)",
             "Local Markdown/TXT Review Reader Demo",
+            'return Object.prototype.hasOwnProperty.call(labels, key) ? labels[key] : key;',
         ],
     )
+    assert_not_contains(english_reader, ["paragraph 1 paragraph_suffix"])
     docs_reader = ROOT / "output" / "project-docs.html"
     if not docs_reader.exists():
         raise AssertionError("output/project-docs.html was not generated")
@@ -353,6 +358,20 @@ review:
             "确认 MIT",
         ],
     )
+    docs_reader_en = ROOT / "output" / "project-docs.en.html"
+    if not docs_reader_en.exists():
+        raise AssertionError("output/project-docs.en.html was not generated")
+    assert_contains(
+        docs_reader_en,
+        [
+            "Local Markdown/TXT Review Reader Docs",
+            "README.zh-CN.md",
+            "docs/05-security-notes.en.md",
+            "docs/06-developer-guide.en.md",
+            "Review Board",
+            "Copy review.md",
+        ],
+    )
 
     fixture_source = ROOT / "examples" / "conversion-fixtures" / "source"
     converted = ROOT / "examples" / "conversion-fixtures" / "converted"
@@ -371,7 +390,7 @@ review:
         if not (nested_output / "a" / "same.docx.md").exists() or not (nested_output / "b" / "same.docx.md").exists():
             raise AssertionError("recursive converter should preserve relative folders for duplicate file names")
 
-    converted_files = sorted(converted.glob("*.md"))
+    converted_files = sorted(converted.glob("*.docx.md"))
     if len(converted_files) != 1:
         raise AssertionError(f"expected 1 converted docx file, found {len(converted_files)}")
     for item in converted_files:
@@ -422,8 +441,10 @@ review:
 
     generated_demo_dir = ROOT / "examples" / "generated"
     generated_basic = generated_demo_dir / "basic-reader.demo.html"
+    generated_english = generated_demo_dir / "basic-reader.en.demo.html"
     generated_docs = generated_demo_dir / "project-docs.demo.html"
-    for demo_file in [generated_basic, generated_docs]:
+    generated_docs_english = generated_demo_dir / "project-docs.en.demo.html"
+    for demo_file in [generated_basic, generated_english, generated_docs, generated_docs_english]:
         if not demo_file.exists():
             raise AssertionError(f"selected generated demo is missing: {demo_file}")
         assert_not_contains(
@@ -439,8 +460,34 @@ review:
         )
     assert_contains(generated_basic, ["本地 Markdown/TXT 审阅阅读器 Demo", "zh-001-introduction.md"])
     assert_contains(
+        generated_english,
+        ["Local Markdown/TXT Review Reader Demo", "(Unknown link, check the source file)"],
+    )
+    assert_contains(
         generated_docs,
         ["README.zh-CN.md", "docs/05-security-notes.en.md", "docs/06-developer-guide.en.md"],
+    )
+    assert_contains(
+        generated_docs_english,
+        ["Local Markdown/TXT Review Reader Docs", "Review Board", "docs/06-developer-guide.en.md"],
+    )
+
+    for readme_path in [ROOT / "README.md", ROOT / "README.zh-CN.md", ROOT / "examples" / "generated" / "README.md"]:
+        readme_text = readme_path.read_text(encoding="utf-8", errors="replace")
+        demo_paths = set(re.findall(r"examples/generated/[A-Za-z0-9._-]+\.html", readme_text))
+        if not demo_paths:
+            raise AssertionError(f"{readme_path} should list generated demo HTML files")
+        missing_demo_paths = [path for path in sorted(demo_paths) if not (ROOT / path).exists()]
+        if missing_demo_paths:
+            raise AssertionError(f"{readme_path} lists missing generated demos: {missing_demo_paths}")
+    assert_contains(
+        ROOT / "index.html",
+        [
+            "./examples/generated/basic-reader.demo.html",
+            "./examples/generated/basic-reader.en.demo.html",
+            "./examples/generated/project-docs.demo.html",
+            "./examples/generated/project-docs.en.demo.html",
+        ],
     )
 
     print("smoke test passed")

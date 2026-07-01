@@ -12,3 +12,17 @@ venv/
 *.log
 .DS_Store
 Thumbs.db
+
+# Office/editor temporary files
+~$*
+*.tmp
+*.bak
+
+# Local scratch folders
+/tmp/
+/temp/
+/conversion-output/
+/converted-output/
+
+# Render/debug outputs
+/docx_render_check/
