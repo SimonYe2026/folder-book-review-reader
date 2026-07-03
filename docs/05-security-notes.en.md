@@ -17,7 +17,7 @@ The reason is simple: the build process places input file content into a browser
 The current version includes these protections:
 
 - Source files are read-only; the build process does not modify source chapters.
-- `source_dir` and `output` must stay inside the project folder containing the config file.
+- `source_dir` and `output` are resolved from `workspace_root` and must stay inside it.
 - Markdown links do not generate clickable `<a href=...>` elements by default.
 - Links are replaced with a notice such as "Unknown link, check the source file".
 - Image URLs reject protocols such as `javascript:`.

@@ -17,7 +17,7 @@
 当前版本已经做了这些防护：
 
 - 源文件只读，构建过程不修改源章节。
-- `source_dir` 和 `output` 必须留在配置文件所在项目目录内。
+- `source_dir` 和 `output` 会从 `workspace_root` 解析，并且必须留在它里面。
 - Markdown 链接默认不生成可点击 `<a href=...>`。
 - 链接会显示为“未知链接，请回源文件查看”这类占位提示。
 - 图片 URL 禁止 `javascript:` 等协议。

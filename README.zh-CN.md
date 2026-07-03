@@ -1,23 +1,42 @@
 # 本地 Markdown/TXT 审阅阅读器
 
-一个本地优先的小工具，用来把一个文件夹里的 Markdown/TXT 文件打包成可阅读、可筛选、可批复的单文件 HTML。
+[English README](README.md)
 
-它会生成一个自包含的 `reader.html`，可直接在浏览器中打开。阅读器支持搜索、筛选后翻页、布局调整、深色模式，以及可导出 `review.md` 的本地审阅板。
+一个本地优先的小工具，用来阅读和审阅一个文件夹里的 Markdown/TXT 文件。
 
-运行要求：Python 3.10 或更高版本。核心阅读器只使用 Python 标准库，不需要安装 `pip` 依赖、npm 或前端框架。
+它会把文件夹打包成一个自包含的 `reader.html`。你可以在浏览器里像读一本书一样连续阅读多个文件，按关键词形成临时书单，标记段落，并导出按文件分组的 `review.md`，交给 AI 或作为人工修改清单继续处理。
 
-默认界面为中文：`locale: zh-CN`。英文作为国际化配置保留在 `workspace.en.config.md`。
+默认界面是中文：`locale: zh-CN`。英文界面保留在 `config/workspace.en.config.md`。
+
+## 适合什么场景
+
+当你手里有很多本地 Markdown/TXT 文件，例如草稿、AI 输出、笔记、转换后的文档、项目说明文件，并且想要：
+
+- 连续阅读，而不修改源文件；
+- 搜索并只在当前筛选结果里翻篇；
+- 阅读时收集批复；
+- 把 `review.md` 交给 AI，或自己按清单修改；
+- 修改源文件后重新打包检查整体结果；
+
+这个工具就适合使用。
+
+阅读器本身不调用 AI、不修改源文件、不合并 AI 返回结果。
+
+## 运行要求
+
+- Python 3.10 或更高版本。
+- 不需要 `pip install`。
+- 不需要 npm。
+- 不需要前端框架。
+
+核心阅读器只使用 Python 标准库。
 
 ## 快速开始
 
-```powershell
-python build_reader.py workspace.config.md
-```
-
-英文界面示例：
+生成默认中文 demo：
 
 ```powershell
-python build_reader.py workspace.en.config.md
+python build_reader.py
 ```
 
 打开：
@@ -26,73 +45,103 @@ python build_reader.py workspace.en.config.md
 output/reader.html
 ```
 
+默认命令会读取 `config/workspace.config.md`。
+
+你也可以把配置文件放在脚本旁边，并显式传入：
+
+```powershell
+python build_reader.py workspace.config.md
+```
+
+本仓库两种方式都保留了：根目录的 `workspace.config.md` 是单配置示例，`config/` 是多配置 demo 组织方式。
+
+生成英文界面 demo：
+
+```powershell
+python build_reader.py config/workspace.en.config.md
+```
+
 可选本地预览：
 
 ```powershell
 python serve_reader.py
 ```
 
-生成说明文档阅读器：
+## 配置路径规则
 
-```powershell
-python build_reader.py workspace.docs.config.md
+路径以 `workspace_root` 为基准解析。
+
+如果没有设置 `workspace_root`，默认就是配置文件所在目录。
+
+两种配置摆放方式都可以。
+
+简单单配置项目：
+
+```yaml
+workspace_root: .
+source_dir: ./examples/basic/drafts
+output: ./output/reader.html
 ```
 
-打开：
+集中配置文件夹：
+
+```yaml
+workspace_root: ..
+source_dir: ./examples/basic/drafts
+output: ./output/reader.html
+```
+
+`source_dir` 和 `output` 都必须留在 `workspace_root` 内。这样把脚本复制到别的项目时，读取范围和输出范围会更清楚。
+
+本仓库采用集中配置方式，是因为我们有多个 demo 和文档配置。对只有一个配置的小项目来说，把 `workspace.config.md` 放在 `build_reader.py` 旁边仍然完全可以。
+
+## 预期工作流
 
 ```text
-output/project-docs.html
+收集或生成 Markdown/TXT 文件
+  -> 打包 reader.html
+  -> 本地阅读、筛选、审阅
+  -> 复制或下载 review.md
+  -> 把 review.md 交给 AI，或作为人工修改清单
+  -> 在阅读器外修改源文件
+  -> 重新打包 reader.html 检查结果
 ```
-
-## 在线 Demo
-
-GitHub Pages 已启用，可以直接打开：
-
-- 中文基础 demo：`https://simonye2026.github.io/folder-book-review-reader/examples/generated/basic-reader.demo.html`
-- 英文基础 demo：`https://simonye2026.github.io/folder-book-review-reader/examples/generated/basic-reader.en.demo.html`
-- 中文项目文档 demo：`https://simonye2026.github.io/folder-book-review-reader/examples/generated/project-docs.demo.html`
-- 英文项目文档 demo：`https://simonye2026.github.io/folder-book-review-reader/examples/generated/project-docs.en.demo.html`
-
-同样的浏览器可打开示例也提交在 `examples/generated/`：
-
-- `examples/generated/basic-reader.demo.html`
-- `examples/generated/basic-reader.en.demo.html`
-- `examples/generated/project-docs.demo.html`
-- `examples/generated/project-docs.en.demo.html`
 
 ## 功能
 
 - 读取配置目录下的 `.md` 和 `.txt` 文件。
 - 生成单文件 `reader.html`。
 - 不修改源文件。
-- 支持标题、路径、文件名、正文搜索。
+- 支持标题、文件名、相对路径、正文搜索。
 - 上一篇/下一篇基于当前筛选结果跳转。
 - 支持字体大小、阅读宽度、主题、左右栏拖拽宽度。
-- 支持目录栏和审阅板折叠。
 - 支持 TXT 段落模式配置。
 - 支持 UI 文案 labels 配置。
 - 支持选中文本或段落加入批复。
 - 批复保存到 `localStorage`。
 - 支持按文件分组导出 `review.md`。
-- Markdown 链接默认禁用，避免启用不可信链接。
 
-## 预期工作流
+## 不做什么
 
-```text
-从任意工作流生成或收集文件
-  -> 用本脚本打包 reader.html
-  -> 本地阅读、筛选、审阅
-  -> 复制或下载 review.md
-  -> 把 review.md 交给 AI，或作为人工修改清单
-  -> 由 AI 或用户在阅读器外修改源文件
-  -> 再次打包 reader.html，检查修改后的整体结果
-```
+- 不调用 AI API。
+- 不从浏览器写回源文件。
+- 不自动合并 AI 返回结果。
+- 不依赖 React、Vue、npm 或前端构建链。
+- 不在浏览器中直接解析 Office/PDF。
+- 不承诺复杂 DOCX 版式完全还原。
 
-阅读器本身不调用 AI，也不修改源文件。它只生成一份旁路批复文件，方便 AI 或人工继续处理。
+## 在线 Demo
+
+GitHub Pages 已启用：
+
+- 中文基础 demo：`https://simonye2026.github.io/folder-book-review-reader/examples/generated/basic-reader.demo.html`
+- 英文基础 demo：`https://simonye2026.github.io/folder-book-review-reader/examples/generated/basic-reader.en.demo.html`
+- 中文项目文档 demo：`https://simonye2026.github.io/folder-book-review-reader/examples/generated/project-docs.demo.html`
+- 英文项目文档 demo：`https://simonye2026.github.io/folder-book-review-reader/examples/generated/project-docs.en.demo.html`
+
+同样的浏览器可打开示例也提交在 `examples/generated/`。
 
 ## 嵌入到其他项目
-
-这个仓库可以作为完整 demo 使用，但核心工具刻意保持很小，适合被复制到别人的项目里。
 
 最小集成只需要复制：
 
@@ -104,8 +153,6 @@ GitHub Pages 已启用，可以直接打开：
 - `serve_reader.py`：用于本地预览。
 - `tools/convert_docs.py`：用于 DOCX 转换路径。
 - `tests/smoke_test.py`：用于回归检查。
-
-宿主项目可以保留自己的文档、AI 输出、草稿或批复文件。阅读器只需要一个配置好的源目录和输出路径。
 
 推荐嵌入流程：
 
@@ -119,20 +166,11 @@ GitHub Pages 已启用，可以直接打开：
   -> 重新打包 reader.html
 ```
 
-## 不做什么
-
-- 不调用 AI API。
-- 不从浏览器写回源文件。
-- 不自动合并 AI 返回结果。
-- 不依赖 React、Vue、npm 或前端构建链。
-- 不在浏览器中直接解析 Office/PDF。
-- 不承诺复杂 DOCX 版式完全还原。
-
 ## 可选转换器
 
 核心阅读器只接受 Markdown/TXT。
 
-如果要处理非 Markdown/TXT 的来源，建议先通过可选转换器转成 Markdown/TXT：
+如果要处理非 Markdown/TXT 的来源，建议先转成 Markdown/TXT：
 
 ```text
 原始文档 -> 转换器 -> md/txt -> build_reader.py -> reader.html
@@ -157,6 +195,12 @@ python tools/convert_docs.py examples/conversion-fixtures/source -o examples/con
 python tests/smoke_test.py
 ```
 
+单独检查已生成 HTML 的页面质量：
+
+```powershell
+python tests/html_quality_check.py
+```
+
 刷新已提交的 demo HTML：
 
 ```powershell
@@ -165,13 +209,17 @@ python tools/build_demos.py
 
 `output/` 是日常本地构建目录，不应提交。公开 demo HTML 放在 `examples/generated/`。
 
+GitHub Actions 会在 push 和 pull request 时运行 smoke test。
+
 ## 安全提示
 
 生成的 HTML 会包含源文件正文。如果源文件有敏感内容，不要公开分享生成的 `reader.html`。
 
 浏览器阅读器不会写回源文件。
 
-项目已经做了链接禁用、TXT 转义渲染、嵌入 JSON 安全转义、图片 data URL 限制等防护。即便如此，也不建议打包来路不明的 Markdown/TXT 文件，也不建议对来路不明的 Office 文档运行可选转换器。陌生文本文件请先用普通文本编辑器检查。
+Markdown 链接默认禁用。TXT 内容会被转义。嵌入 JSON 做了脚本安全处理。图片 data URL 只允许常见 raster 格式。
+
+即便有这些防护，也不建议打包来路不明的 Markdown/TXT 文件，也不建议对来路不明的 Office 文档运行可选转换器。陌生文本文件请先用普通文本编辑器检查。
 
 ## 许可证
 
@@ -181,7 +229,7 @@ MIT License。详见 `LICENSE`。
 
 - `docs/01-project-status.zh-CN.md` / `docs/01-project-status.en.md`：项目状态、边界和非目标。
 - `docs/02-release-checklist.zh-CN.md` / `docs/02-release-checklist.en.md`：发布检查和测试覆盖。
-- `docs/03-customization-guide.zh-CN.md` / `docs/03-customization-guide.en.md`：面向后来者的自定义指南。
+- `docs/03-customization-guide.zh-CN.md` / `docs/03-customization-guide.en.md`：自定义指南。
 - `docs/04-user-manual.zh-CN.md` / `docs/04-user-manual.en.md`：用户手册、快捷键、审阅板和导出流程。
-- `docs/05-security-notes.zh-CN.md` / `docs/05-security-notes.en.md`：安全模型、已有防护和不可信输入说明。
-- `docs/06-developer-guide.zh-CN.md` / `docs/06-developer-guide.en.md`：代码架构、扩展顺序、框架判断和回归要求。
+- `docs/05-security-notes.zh-CN.md` / `docs/05-security-notes.en.md`：安全模型和不可信输入说明。
+- `docs/06-developer-guide.zh-CN.md` / `docs/06-developer-guide.en.md`：代码架构和扩展建议。

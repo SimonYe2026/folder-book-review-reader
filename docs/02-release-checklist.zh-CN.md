@@ -9,31 +9,31 @@
 - 运行默认中文构建：
 
 ```powershell
-python build_reader.py workspace.config.md --overwrite
+python build_reader.py config/workspace.config.md --overwrite
 ```
 
 - 运行英文界面构建：
 
 ```powershell
-python build_reader.py workspace.en.config.md --overwrite
+python build_reader.py config/workspace.en.config.md --overwrite
 ```
 
 - 运行转换器样例构建：
 
 ```powershell
-python build_reader.py workspace.converted.config.md --overwrite
+python build_reader.py config/workspace.converted.config.md --overwrite
 ```
 
 - 运行文档状态构建：
 
 ```powershell
-python build_reader.py workspace.docs.config.md --overwrite
+python build_reader.py config/workspace.docs.config.md --overwrite
 ```
 
 - 运行英文界面文档状态构建：
 
 ```powershell
-python build_reader.py workspace.docs.en.config.md --overwrite
+python build_reader.py config/workspace.docs.en.config.md --overwrite
 ```
 
 - 刷新公开 demo HTML：
@@ -48,6 +48,18 @@ python tools/build_demos.py
 
 ```powershell
 python tests/smoke_test.py
+```
+
+- 可单独运行页面质量检查：
+
+```powershell
+python tests/html_quality_check.py
+```
+
+- GitHub Actions 会在 push、pull request 或手动触发时运行同一组 smoke test：
+
+```text
+.github/workflows/smoke.yml
 ```
 
 当前 smoke test 覆盖：
@@ -68,6 +80,7 @@ python tests/smoke_test.py
 - 主阅读器、英文阅读器、中英文文档阅读器、转换器阅读器构建。
 - DOCX 转换器基础质量。
 - 递归转换同名文件时不覆盖。
+- 生成 HTML 的页面结构、内嵌数据、审阅钩子、导航钩子和安全模式。
 - 选择性提交的生成示例 HTML 存在，并且不包含本地绝对路径或私人批复标记。
 - README 中列出的 generated demo 链接都指向已提交文件。
 
@@ -127,3 +140,4 @@ python tests/smoke_test.py
 - 不把开发治理日志、个人工作记录放进开源目录。
 - 确认 MIT `LICENSE` 文件存在。
 - 发布前重新跑一次 smoke test。
+- 推送后确认 GitHub Actions 的 `Smoke Test` 通过。

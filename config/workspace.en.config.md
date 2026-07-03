@@ -1,6 +1,7 @@
 ---
 title: Local Markdown/TXT Review Reader Demo
 locale: en
+workspace_root: ..
 source_dir: ./examples/basic/drafts
 recursive: true
 flatten: true

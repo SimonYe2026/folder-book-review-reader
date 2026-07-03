@@ -1,6 +1,7 @@
 ---
 title: 转换器测试文档审阅 Demo
 locale: zh-CN
+workspace_root: ..
 source_dir: ./examples/conversion-fixtures/converted
 recursive: false
 flatten: true

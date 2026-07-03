@@ -9,31 +9,31 @@ Chinese counterpart: `02-release-checklist.zh-CN.md`
 - Build the default Chinese reader:
 
 ```powershell
-python build_reader.py workspace.config.md --overwrite
+python build_reader.py config/workspace.config.md --overwrite
 ```
 
 - Build the English UI reader:
 
 ```powershell
-python build_reader.py workspace.en.config.md --overwrite
+python build_reader.py config/workspace.en.config.md --overwrite
 ```
 
 - Build the converter sample reader:
 
 ```powershell
-python build_reader.py workspace.converted.config.md --overwrite
+python build_reader.py config/workspace.converted.config.md --overwrite
 ```
 
 - Build the documentation status reader:
 
 ```powershell
-python build_reader.py workspace.docs.config.md --overwrite
+python build_reader.py config/workspace.docs.config.md --overwrite
 ```
 
 - Build the English UI documentation status reader:
 
 ```powershell
-python build_reader.py workspace.docs.en.config.md --overwrite
+python build_reader.py config/workspace.docs.en.config.md --overwrite
 ```
 
 - Refresh selected public demo HTML files:
@@ -48,6 +48,18 @@ python tools/build_demos.py
 
 ```powershell
 python tests/smoke_test.py
+```
+
+- Run the generated HTML quality check directly if needed:
+
+```powershell
+python tests/html_quality_check.py
+```
+
+- GitHub Actions runs the same smoke test on push, pull request, or manual dispatch:
+
+```text
+.github/workflows/smoke.yml
 ```
 
 The current smoke test covers:
@@ -68,6 +80,7 @@ The current smoke test covers:
 - Main reader, English reader, Chinese/English documentation readers, and converted reader builds.
 - Basic DOCX converter quality.
 - Recursive conversion without overwriting duplicate file names.
+- Generated HTML page structure, embedded data, review hooks, navigation hooks, and safety patterns.
 - Selected generated demo HTML files exist and do not contain local absolute paths or private review markers.
 - README generated-demo links point to checked-in files.
 
@@ -127,3 +140,4 @@ For each public demo, confirm:
 - Do not put development governance logs or personal work records into the open-source folder.
 - Confirm the MIT `LICENSE` file is present.
 - Run the smoke test again before publishing.
+- After pushing, confirm the GitHub Actions `Smoke Test` passes.

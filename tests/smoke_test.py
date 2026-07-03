@@ -38,6 +38,7 @@ def main() -> int:
     parsed = build_reader.parse_simple_yaml(
         """
 title: 测试配置 # 行尾注释
+workspace_root: .
 include: ["*.md", "*.txt"]
 exclude: []
 display:
@@ -169,13 +170,14 @@ review:
 
     run([sys.executable, "-m", "py_compile", "build_reader.py", "serve_reader.py", "tools/convert_docs.py"])
     run([sys.executable, "-m", "py_compile", "tools/build_demos.py"])
+    run([sys.executable, "-m", "py_compile", "tests/html_quality_check.py"])
 
     license_file = ROOT / "LICENSE"
     if not license_file.exists():
         raise AssertionError("LICENSE file is required before release")
     assert_contains(license_file, ["MIT License", "folder-book-reader contributors"])
-    assert_contains(ROOT / "README.md", ["Python 3.10 or newer", "Python standard library"])
-    assert_contains(ROOT / "README.zh-CN.md", ["Python 3.10 或更高版本", "Python 标准库"])
+    assert_contains(ROOT / "README.md", ["Python 3.10 or newer", "Python standard library", "[中文说明](README.zh-CN.md)"])
+    assert_contains(ROOT / "README.zh-CN.md", ["Python 3.10 或更高版本", "Python 标准库", "[English README](README.md)"])
 
     (ROOT / "output").mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(dir=ROOT / "output") as temp_root:
@@ -271,13 +273,59 @@ review:
         if no_match_result.returncode != 2 or "No .md or .txt files matched" not in no_match_result.stderr:
             raise AssertionError("non-matching source directories should fail with a clear config error")
 
+        nested_workspace = temp_path / "nested-workspace"
+        nested_workspace.mkdir()
+        nested_source = nested_workspace / "docs"
+        nested_source.mkdir()
+        (nested_source / "001.md").write_text("# Nested\n\nbody\n", encoding="utf-8")
+        config_dir = nested_workspace / "config"
+        config_dir.mkdir()
+        workspace_root_config = config_dir / "reader.config.md"
+        workspace_root_config.write_text(
+            "---\n"
+            "title: Workspace Root Test\n"
+            "workspace_root: ..\n"
+            "source_dir: ./docs\n"
+            "include: [\"*.md\"]\n"
+            "output: ./published/reader.html\n"
+            "overwrite: true\n"
+            "---\n",
+            encoding="utf-8",
+        )
+        workspace_root_result = run([sys.executable, "build_reader.py", str(workspace_root_config)])
+        workspace_root_output = nested_workspace / "published" / "reader.html"
+        if not workspace_root_output.exists():
+            raise AssertionError("workspace_root should let configs live below the project root")
+        if "Workspace root:" not in workspace_root_result.stdout or "Config dir:" not in workspace_root_result.stdout:
+            raise AssertionError("build scope should show both config dir and workspace root")
+
+        escaped_config = config_dir / "escaped.config.md"
+        escaped_config.write_text(
+            "---\n"
+            "title: Escaped Source\n"
+            "workspace_root: ..\n"
+            "source_dir: ../outside\n"
+            "include: [\"*.md\"]\n"
+            "---\n",
+            encoding="utf-8",
+        )
+        escaped_result = subprocess.run(
+            [sys.executable, "build_reader.py", str(escaped_config)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+        )
+        if escaped_result.returncode != 2 or "source_dir must stay inside workspace_root" not in escaped_result.stderr:
+            raise AssertionError("source_dir must not escape workspace_root")
+
+    run([sys.executable, "build_reader.py", "--dry-run"])
+    run([sys.executable, "build_reader.py"])
     run([sys.executable, "build_reader.py", "workspace.config.md", "--dry-run"])
-    run([sys.executable, "build_reader.py", "workspace.config.md"])
-    run([sys.executable, "build_reader.py", "workspace.en.config.md"])
-    run([sys.executable, "build_reader.py", "workspace.docs.config.md"])
-    run([sys.executable, "build_reader.py", "workspace.docs.en.config.md"])
-    run([sys.executable, "build_reader.py", "workspace.converted.config.md", "--dry-run"])
-    run([sys.executable, "build_reader.py", "workspace.converted.config.md"])
+    run([sys.executable, "build_reader.py", "config/workspace.en.config.md"])
+    run([sys.executable, "build_reader.py", "config/workspace.docs.config.md"])
+    run([sys.executable, "build_reader.py", "config/workspace.docs.en.config.md"])
+    run([sys.executable, "build_reader.py", "config/workspace.converted.config.md", "--dry-run"])
+    run([sys.executable, "build_reader.py", "config/workspace.converted.config.md"])
 
     reader = ROOT / "output" / "reader.html"
     if not reader.exists():
@@ -489,6 +537,7 @@ review:
             "./examples/generated/project-docs.en.demo.html",
         ],
     )
+    run([sys.executable, "tests/html_quality_check.py"])
 
     print("smoke test passed")
     return 0

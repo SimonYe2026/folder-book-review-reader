@@ -29,9 +29,10 @@ For a minimal integration into another project:
 ```text
 copy build_reader.py
 copy or create workspace.config.md
+set workspace_root to the project root if the config lives elsewhere
 point source_dir to your md/txt folder
 point output to your output folder
-run python build_reader.py workspace.config.md
+run python build_reader.py path/to/workspace.config.md
 ```
 
 If you do not need DOCX conversion, you do not need to copy `tools/convert_docs.py`.
@@ -55,6 +56,7 @@ files from any source
 Edit the config file:
 
 ```yaml
+workspace_root: .
 source_dir: ./examples/basic/drafts
 recursive: true
 include:
@@ -64,7 +66,17 @@ exclude:
   - "*private*"
 ```
 
-`source_dir` must stay inside the folder containing the config file.
+`workspace_root` defaults to the folder containing the config file. `source_dir` is resolved from `workspace_root` and must stay inside it.
+
+Both styles are valid. For a small project with one config, keep `workspace.config.md` beside `build_reader.py` and use `workspace_root: .` or omit it. If you keep configs in a subfolder, point `workspace_root` back to the project root:
+
+```yaml
+workspace_root: ..
+source_dir: ./docs
+output: ./output/reader.html
+```
+
+This repository uses the subfolder pattern because it has several ready-to-use configs in `config/`. That is a convenience for multi-config projects, not a requirement for every user.
 
 ### Change Output Path
 
@@ -72,6 +84,8 @@ exclude:
 output: ./output/reader.html
 overwrite: false
 ```
+
+`output` is also resolved from `workspace_root` and must stay inside it.
 
 When `overwrite: false` and the target already exists, the script writes a timestamped file instead.
 

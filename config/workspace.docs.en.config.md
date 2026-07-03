@@ -1,6 +1,7 @@
 ---
 title: Local Markdown/TXT Review Reader Docs
 locale: en
+workspace_root: ..
 source_dir: .
 recursive: true
 flatten: true

@@ -29,9 +29,10 @@ HTML 阅读器负责浏览器里的阅读、筛选、翻页、批复和导出。
 ```text
 复制 build_reader.py
 复制或新建 workspace.config.md
+如果配置文件不在项目根目录，把 workspace_root 指向项目根目录
 把 source_dir 指向自己的 md/txt 文件夹
 把 output 指向自己的输出目录
-运行 python build_reader.py workspace.config.md
+运行 python build_reader.py path/to/workspace.config.md
 ```
 
 如果不需要 DOCX 转换器，就不必复制 `tools/convert_docs.py`。
@@ -55,6 +56,7 @@ HTML 阅读器负责浏览器里的阅读、筛选、翻页、批复和导出。
 在配置文件中修改：
 
 ```yaml
+workspace_root: .
 source_dir: ./examples/basic/drafts
 recursive: true
 include:
@@ -64,7 +66,17 @@ exclude:
   - "*private*"
 ```
 
-`source_dir` 必须位于配置文件所在目录之内。
+`workspace_root` 默认是配置文件所在目录。`source_dir` 会从 `workspace_root` 解析，并且必须留在它里面。
+
+两种方式都有效。只有一个配置的小项目，可以把 `workspace.config.md` 放在 `build_reader.py` 旁边，并使用 `workspace_root: .` 或直接省略它。如果你把配置文件放在子目录，可以让 `workspace_root` 指回项目根目录：
+
+```yaml
+workspace_root: ..
+source_dir: ./docs
+output: ./output/reader.html
+```
+
+本仓库采用子目录方式，是因为它有多个可直接使用的配置文件放在 `config/` 下。这适合多配置项目，但不是每个用户都必须这样组织。
 
 ### 改输出路径
 
@@ -72,6 +84,8 @@ exclude:
 output: ./output/reader.html
 overwrite: false
 ```
+
+`output` 同样从 `workspace_root` 解析，并且必须留在它里面。
 
 当 `overwrite: false` 且目标文件已存在时，脚本会生成带时间戳的新文件。
 

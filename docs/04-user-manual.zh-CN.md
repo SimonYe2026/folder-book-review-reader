@@ -9,7 +9,7 @@
 在项目目录中运行：
 
 ```powershell
-python build_reader.py workspace.config.md
+python build_reader.py
 ```
 
 生成文件：

@@ -331,10 +331,10 @@ def parse_simple_yaml(text: str) -> dict[str, Any]:
 def load_config(config_path: Path) -> dict[str, Any]:
     raw = config_path.read_text(encoding="utf-8")
     if not raw.startswith("---"):
-        raise ConfigError("workspace.config.md must start with YAML frontmatter.")
+        raise ConfigError("Config file must start with YAML frontmatter.")
     parts = raw.split("---", 2)
     if len(parts) < 3:
-        raise ConfigError("workspace.config.md is missing a closing frontmatter marker.")
+        raise ConfigError("Config file is missing a closing frontmatter marker.")
 
     config = parse_simple_yaml(parts[1])
     if not config.get("source_dir"):
@@ -344,6 +344,7 @@ def load_config(config_path: Path) -> dict[str, Any]:
     config.setdefault("include", ["*.md", "*.txt"])
     config.setdefault("exclude", [])
     config.setdefault("order", "natural")
+    config.setdefault("workspace_root", ".")
     config.setdefault("recursive", False)
     config.setdefault("flatten", True)
     config.setdefault("output", "./output/reader.html")
@@ -411,6 +412,29 @@ def is_under(path: Path, parent: Path) -> bool:
         return False
 
 
+def resolve_workspace_root(config_path: Path, config: dict[str, Any]) -> Path:
+    raw_root = str(config.get("workspace_root") or ".")
+    root_path = Path(raw_root)
+    if not root_path.is_absolute():
+        root_path = config_path.parent / root_path
+    workspace_root = root_path.resolve()
+    if not workspace_root.exists():
+        raise ConfigError(f"workspace_root does not exist: {workspace_root}")
+    if not workspace_root.is_dir():
+        raise ConfigError(f"workspace_root is not a directory: {workspace_root}")
+    return workspace_root
+
+
+def resolve_inside_workspace(workspace_root: Path, value: str, field_name: str) -> Path:
+    raw_path = Path(value)
+    if not raw_path.is_absolute():
+        raw_path = workspace_root / raw_path
+    resolved = raw_path.resolve()
+    if not is_under(resolved, workspace_root):
+        raise ConfigError(f"{field_name} must stay inside workspace_root: {resolved}")
+    return resolved
+
+
 def matches_any(path: Path, relative_path: str, patterns: list[str]) -> bool:
     return any(
         fnmatch.fnmatch(path.name, pattern)
@@ -426,10 +450,8 @@ def is_included(path: Path, relative_path: str, include: list[str], exclude: lis
     return included and not excluded and path.suffix.lower() in SUPPORTED_EXTENSIONS
 
 
-def discover_files(base_dir: Path, config: dict[str, Any]) -> tuple[list[Path], Path]:
-    source_dir = (base_dir / str(config["source_dir"])).resolve()
-    if not is_under(source_dir, base_dir):
-        raise ConfigError(f"source_dir must stay inside the project folder: {source_dir}")
+def discover_files(workspace_root: Path, config: dict[str, Any]) -> tuple[list[Path], Path]:
+    source_dir = resolve_inside_workspace(workspace_root, str(config["source_dir"]), "source_dir")
     if not source_dir.exists():
         raise ConfigError(f"source_dir does not exist: {source_dir}")
     if not source_dir.is_dir():
@@ -813,7 +835,7 @@ def derive_prefix(stem: str) -> str:
     return match.group(1) if match else stem
 
 
-def build_chapters(base_dir: Path, source_dir: Path, files: list[Path], config: dict[str, Any]) -> list[dict[str, Any]]:
+def build_chapters(workspace_root: Path, source_dir: Path, files: list[Path], config: dict[str, Any]) -> list[dict[str, Any]]:
     chapters = []
     for index, path in enumerate(files, start=1):
         raw_text = path.read_text(encoding="utf-8-sig")
@@ -833,7 +855,7 @@ def build_chapters(base_dir: Path, source_dir: Path, files: list[Path], config: 
                 "title": title,
                 "file_name": path.name,
                 "relative_path": relative_path,
-                "path": path.relative_to(base_dir).as_posix(),
+                "path": path.relative_to(workspace_root).as_posix(),
                 "folder": "/".join(path_segments),
                 "path_segments": path_segments,
                 "prefix": derive_prefix(path.stem),
@@ -847,10 +869,8 @@ def build_chapters(base_dir: Path, source_dir: Path, files: list[Path], config: 
     return chapters
 
 
-def output_path_for(base_dir: Path, config: dict[str, Any], force_overwrite: bool = False) -> Path:
-    output_path = (base_dir / str(config.get("output", "./output/reader.html"))).resolve()
-    if not is_under(output_path, base_dir):
-        raise ConfigError(f"output must stay inside the project folder: {output_path}")
+def output_path_for(workspace_root: Path, config: dict[str, Any], force_overwrite: bool = False) -> Path:
+    output_path = resolve_inside_workspace(workspace_root, str(config.get("output", "./output/reader.html")), "output")
     overwrite = bool(config.get("overwrite", True)) or force_overwrite
     if output_path.exists() and not overwrite:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -858,11 +878,20 @@ def output_path_for(base_dir: Path, config: dict[str, Any], force_overwrite: boo
     return output_path
 
 
-def summarize_build(config_path: Path, source_dir: Path, files: list[Path], output_path: Path, config: dict[str, Any]) -> str:
+def summarize_build(
+    config_path: Path,
+    workspace_root: Path,
+    source_dir: Path,
+    files: list[Path],
+    output_path: Path,
+    config: dict[str, Any],
+) -> str:
     relative_files = [path.relative_to(source_dir).as_posix() for path in files]
     lines = [
         "Build scope:",
         f"- Config: {config_path}",
+        f"- Config dir: {config_path.parent}",
+        f"- Workspace root: {workspace_root}",
         f"- Source dir: {source_dir}",
         f"- Recursive: {bool(config.get('recursive', False))}",
         f"- Matched files: {len(files)}",
@@ -1993,11 +2022,11 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
 
 
 def build_reader(config_path: Path, dry_run: bool = False, force_overwrite: bool = False) -> Path | None:
-    base_dir = config_path.parent.resolve()
     config = load_config(config_path)
-    files, source_dir = discover_files(base_dir, config)
-    output_path = output_path_for(base_dir, config, force_overwrite)
-    print(summarize_build(config_path, source_dir, files, output_path, config))
+    workspace_root = resolve_workspace_root(config_path, config)
+    files, source_dir = discover_files(workspace_root, config)
+    output_path = output_path_for(workspace_root, config, force_overwrite)
+    print(summarize_build(config_path, workspace_root, source_dir, files, output_path, config))
     if dry_run:
         print("Dry run: no files were written.")
         return None
@@ -2006,7 +2035,7 @@ def build_reader(config_path: Path, dry_run: bool = False, force_overwrite: bool
         "title": config["title"],
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "source_dir": str(config["source_dir"]),
-        "chapters": build_chapters(base_dir, source_dir, files, config),
+        "chapters": build_chapters(workspace_root, source_dir, files, config),
     }
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html_document(data, config), encoding="utf-8")
@@ -2015,7 +2044,7 @@ def build_reader(config_path: Path, dry_run: bool = False, force_overwrite: bool
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build a single-file local Markdown/TXT review reader.")
-    parser.add_argument("config", nargs="?", default="workspace.config.md", help="Path to workspace.config.md")
+    parser.add_argument("config", nargs="?", default="config/workspace.config.md", help="Path to a config markdown file")
     parser.add_argument("--dry-run", action="store_true", help="Show matched files without writing reader.html")
     parser.add_argument("--overwrite", action="store_true", help="Force overwrite even when config overwrite is false")
     args = parser.parse_args()

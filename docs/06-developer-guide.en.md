@@ -7,7 +7,7 @@ Chinese counterpart: `06-developer-guide.zh-CN.md`
 ## Current Stable Baseline
 
 ```text
-workspace.config.md
+config/workspace.config.md
   -> build_reader.py scans, parses, and packages files
   -> one self-contained reader.html
   -> the browser reads, filters, reviews, and exports review.md
@@ -86,9 +86,12 @@ Run at least:
 
 ```powershell
 python tests\smoke_test.py
-python build_reader.py workspace.config.md --dry-run
-python build_reader.py workspace.config.md --overwrite
+python tests\html_quality_check.py
+python build_reader.py config/workspace.config.md --dry-run
+python build_reader.py config/workspace.config.md --overwrite
 ```
+
+`html_quality_check.py` is a static page-quality check. It does not launch a browser or simulate clicks. It checks generated HTML for complete page structure, chapter data, review hooks, navigation hooks, and safety boundaries. Browser click-flow tests can be added later as a higher-level test layer.
 
 For frontend interaction changes, also verify manually:
 

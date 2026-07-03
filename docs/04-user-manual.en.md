@@ -9,7 +9,7 @@ Chinese counterpart: `04-user-manual.zh-CN.md`
 Run this command in the project folder:
 
 ```powershell
-python build_reader.py workspace.config.md
+python build_reader.py
 ```
 
 Generated file:

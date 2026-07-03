@@ -60,6 +60,7 @@ review.md
 - Markdown links are disabled by default and replaced with a source-file notice.
 - `dry-run`, non-overwriting output behavior, and clear config errors.
 - Optional `.docx -> .md` converter.
+- `tests/html_quality_check.py` statically checks generated HTML page structure, chapter data, review hooks, navigation hooks, and safety boundaries.
 
 ## Safety Boundaries
 
@@ -94,12 +95,15 @@ This project is designed to be easy to adapt:
 - Add new file converters.
 - Add new Markdown rendering rules.
 - Add internal config templates for a team or personal workflow.
+- Add a higher-level browser interaction test script for real click flows such as search, navigation, contents clicks, review dialogs, and review-board editing.
 
 When customizing, keep three boundaries first:
 
 - Source files stay read-only.
 - The browser does not gain unnecessary local privileges.
 - Generated content remains readable by normal AI tools and humans.
+
+Tests are also layered: the static page-quality check quickly verifies generated HTML structure, while browser interaction tests should be a separate higher-level script rather than part of the static checker.
 
 ## Current Conclusion
 

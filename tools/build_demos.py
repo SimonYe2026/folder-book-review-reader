@@ -9,10 +9,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 DEMOS = [
-    ("workspace.config.md", ROOT / "output" / "reader.html", ROOT / "examples" / "generated" / "basic-reader.demo.html"),
-    ("workspace.en.config.md", ROOT / "output" / "reader.en.html", ROOT / "examples" / "generated" / "basic-reader.en.demo.html"),
-    ("workspace.docs.config.md", ROOT / "output" / "project-docs.html", ROOT / "examples" / "generated" / "project-docs.demo.html"),
-    ("workspace.docs.en.config.md", ROOT / "output" / "project-docs.en.html", ROOT / "examples" / "generated" / "project-docs.en.demo.html"),
+    ("config/workspace.config.md", ROOT / "output" / "reader.html", ROOT / "examples" / "generated" / "basic-reader.demo.html"),
+    ("config/workspace.en.config.md", ROOT / "output" / "reader.en.html", ROOT / "examples" / "generated" / "basic-reader.en.demo.html"),
+    ("config/workspace.docs.config.md", ROOT / "output" / "project-docs.html", ROOT / "examples" / "generated" / "project-docs.demo.html"),
+    ("config/workspace.docs.en.config.md", ROOT / "output" / "project-docs.en.html", ROOT / "examples" / "generated" / "project-docs.en.demo.html"),
 ]
 
 

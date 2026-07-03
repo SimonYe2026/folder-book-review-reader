@@ -1,7 +1,7 @@
 ---
 title: 本地 Markdown/TXT 审阅阅读器 Demo
 locale: zh-CN
-workspace_root: .
+workspace_root: ..
 source_dir: ./examples/basic/drafts
 recursive: true
 flatten: true
@@ -63,17 +63,17 @@ stats:
   show_ext_distribution: false
 ---
 
-# 单配置示例
+# 本地 Markdown/TXT 审阅阅读器 Demo
 
-这个文件演示最简单的配置摆放方式：把 `workspace.config.md` 放在 `build_reader.py` 旁边，并使用：
+这是默认中文配置模板，适合直接复制后修改。
 
-```powershell
-python build_reader.py workspace.config.md
-```
+备注：
 
-本仓库的默认命令仍然使用 `config/workspace.config.md`，因为仓库本身有多个 demo 和文档配置需要集中管理。
-
-两种方式都有效：
-
-- 单配置项目：可以把 `workspace.config.md` 放在项目根目录。
-- 多配置项目：可以把多个配置集中放进 `config/`，并使用 `workspace_root: ..` 指回项目根目录。
+- `source_dir` 必须指向当前项目目录内的文件夹。
+- 本仓库把配置集中放在 `config/` 下，所以这里使用 `workspace_root: ..` 指回项目根目录。
+- `include` / `exclude` 支持多行列表，也支持 `exclude: []` 这种空列表写法。
+- `order` 可选：`natural`、`natural_desc`、`modified_desc`。
+- `text.paragraph_mode` 可选：`line` 表示一行一段，`blank_line` 表示空行分段。
+- `locale: zh-CN` 是默认中文界面；英文示例见 `config/workspace.en.config.md`。
+- `.docx` 来源请先用 `tools/convert_docs.py` 转成 `.md`，再用阅读器打包。
+- `.doc`、`.rtf`、`.pdf`、`.epub` 不属于当前开源承诺。
