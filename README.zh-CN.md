@@ -146,7 +146,11 @@ GitHub Pages 已启用：
 最小集成只需要复制：
 
 - `build_reader.py`
-- 按目标项目修改后的 `workspace.config.md`
+
+然后选择一种配置摆放方式：
+
+- 单配置方式：复制 `workspace.template.config.md`，并改名为 `workspace.config.md`。
+- 集中配置方式：复制 `config/workspace.template.config.md`，并改名为 `config/workspace.config.md`。
 
 可选复制：
 
@@ -159,6 +163,7 @@ GitHub Pages 已启用：
 ```text
 你的项目文件
   -> build_reader.py
+  -> workspace.config.md 或 config/workspace.config.md
   -> 本地 reader.html
   -> 人工审阅
   -> review.md

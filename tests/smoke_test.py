@@ -321,6 +321,8 @@ review:
     run([sys.executable, "build_reader.py", "--dry-run"])
     run([sys.executable, "build_reader.py"])
     run([sys.executable, "build_reader.py", "workspace.config.md", "--dry-run"])
+    run([sys.executable, "build_reader.py", "workspace.template.config.md", "--dry-run"])
+    run([sys.executable, "build_reader.py", "config/workspace.template.config.md", "--dry-run"])
     run([sys.executable, "build_reader.py", "config/workspace.en.config.md"])
     run([sys.executable, "build_reader.py", "config/workspace.docs.config.md"])
     run([sys.executable, "build_reader.py", "config/workspace.docs.en.config.md"])

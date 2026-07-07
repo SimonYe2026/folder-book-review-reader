@@ -28,7 +28,7 @@ For a minimal integration into another project:
 
 ```text
 copy build_reader.py
-copy or create workspace.config.md
+copy workspace.template.config.md and rename it to workspace.config.md
 set workspace_root to the project root if the config lives elsewhere
 point source_dir to your md/txt folder
 point output to your output folder
@@ -53,7 +53,7 @@ files from any source
 
 ### Change Source Folder
 
-Edit the config file:
+Copy `workspace.template.config.md` to your own `workspace.config.md`, then edit:
 
 ```yaml
 workspace_root: .

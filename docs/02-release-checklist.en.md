@@ -78,6 +78,7 @@ The current smoke test covers:
 - Clear errors for missing `source_dir`.
 - Clear errors for empty or non-matching source folders.
 - Main reader, English reader, Chinese/English documentation readers, and converted reader builds.
+- Root-level and `config/` centralized config template dry-runs.
 - Basic DOCX converter quality.
 - Recursive conversion without overwriting duplicate file names.
 - Generated HTML page structure, embedded data, review hooks, navigation hooks, and safety patterns.

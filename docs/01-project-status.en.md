@@ -60,6 +60,7 @@ review.md
 - Markdown links are disabled by default and replaced with a source-file notice.
 - `dry-run`, non-overwriting output behavior, and clear config errors.
 - Optional `.docx -> .md` converter.
+- Portable root-level and `config/` config templates for embedding the reader into other Markdown/TXT projects.
 - `tests/html_quality_check.py` statically checks generated HTML page structure, chapter data, review hooks, navigation hooks, and safety boundaries.
 
 ## Safety Boundaries
@@ -94,7 +95,7 @@ This project is designed to be easy to adapt:
 - Change the exported `review.md` format.
 - Add new file converters.
 - Add new Markdown rendering rules.
-- Add internal config templates for a team or personal workflow.
+- Add internal fixed configs based on the templates.
 - Add a higher-level browser interaction test script for real click flows such as search, navigation, contents clicks, review dialogs, and review-board editing.
 
 When customizing, keep three boundaries first:

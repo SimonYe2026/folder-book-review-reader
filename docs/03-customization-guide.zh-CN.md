@@ -28,7 +28,7 @@ HTML 阅读器负责浏览器里的阅读、筛选、翻页、批复和导出。
 
 ```text
 复制 build_reader.py
-复制或新建 workspace.config.md
+复制 workspace.template.config.md，并改名为 workspace.config.md
 如果配置文件不在项目根目录，把 workspace_root 指向项目根目录
 把 source_dir 指向自己的 md/txt 文件夹
 把 output 指向自己的输出目录
@@ -53,7 +53,7 @@ HTML 阅读器负责浏览器里的阅读、筛选、翻页、批复和导出。
 
 ### 改源目录
 
-在配置文件中修改：
+建议从 `workspace.template.config.md` 复制出自己的 `workspace.config.md`，然后修改：
 
 ```yaml
 workspace_root: .

@@ -143,7 +143,11 @@ The same browser-ready demo files are checked into `examples/generated/`.
 For a minimal integration, copy:
 
 - `build_reader.py`
-- a `workspace.config.md` adapted to your project
+
+Then choose one config layout:
+
+- Single-config layout: copy `workspace.template.config.md`, then rename it to `workspace.config.md`.
+- Centralized config layout: copy `config/workspace.template.config.md`, then rename it to `config/workspace.config.md`.
 
 Optional pieces:
 
@@ -156,6 +160,7 @@ Recommended embedded flow:
 ```text
 your project files
   -> build_reader.py
+  -> workspace.config.md or config/workspace.config.md
   -> local reader.html
   -> human review
   -> review.md
