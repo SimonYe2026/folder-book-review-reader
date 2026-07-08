@@ -105,6 +105,25 @@ If text is selected, the review dialog uses the selected text as the quote.
 
 If no text is selected, the review dialog uses the current paragraph.
 
+## CSV Tables
+
+CSV files are shown as table chapters.
+
+- The first row is used as the table header.
+- Data rows are shown as HTML table rows.
+- Tables can scroll horizontally.
+- Search can match headers and cell content.
+- Each data row can receive a review note.
+
+When reviewing CSV content:
+
+- If cell or row text is selected, the selected text is used as the quote.
+- If a CSV cell range is selected, the position tries to include both row and column ranges.
+- If no text is selected, the current row is used as the quote.
+- The exported `review.md` shows the position as `row N`.
+
+The reader does not edit CSV in the browser and does not write back to CSV source files. CSV edits still happen outside the reader, by the user or a later AI-assisted workflow.
+
 The review dialog contains:
 
 - Original quote.
@@ -138,7 +157,7 @@ Each review note usually includes:
 
 - File path.
 - Title.
-- Paragraph position.
+- Paragraph position or CSV row position.
 - Action.
 - Target.
 - Time.

@@ -1,5 +1,5 @@
 ---
-title: 本地 Markdown/TXT 审阅阅读器 Demo
+title: 本地 Markdown/TXT/CSV 审阅阅读器 Demo
 locale: zh-CN
 workspace_root: ..
 source_dir: ./examples/basic/drafts
@@ -8,6 +8,7 @@ flatten: true
 include:
   - "*.md"
   - "*.txt"
+  - "*.csv"
 exclude:
   - "*draft-private*"
 order: natural
@@ -63,7 +64,7 @@ stats:
   show_ext_distribution: false
 ---
 
-# 本地 Markdown/TXT 审阅阅读器 Demo
+# 本地 Markdown/TXT/CSV 审阅阅读器 Demo
 
 这是默认中文配置模板，适合直接复制后修改。
 
@@ -75,5 +76,6 @@ stats:
 - `order` 可选：`natural`、`natural_desc`、`modified_desc`。
 - `text.paragraph_mode` 可选：`line` 表示一行一段，`blank_line` 表示空行分段。
 - `locale: zh-CN` 是默认中文界面；英文示例见 `config/workspace.en.config.md`。
+- `.csv` 会作为表格型章节展示，并支持按行批复。
 - `.docx` 来源请先用 `tools/convert_docs.py` 转成 `.md`，再用阅读器打包。
 - `.doc`、`.rtf`、`.pdf`、`.epub` 不属于当前开源承诺。

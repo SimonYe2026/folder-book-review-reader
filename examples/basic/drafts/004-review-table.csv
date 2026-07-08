@@ -1,0 +1,6 @@
+item,status,owner,note,risk
+导入 CSV,ready,Simon,"Quoted comma, stays in one cell",low
+按行批复,in review,AI 助手,"这一行用于测试 CSV 行级批复。",medium
+空单元格测试,,reviewer,"",low
+公式样文本,text only,spreadsheet,"=SUM(1,2) and @name should stay plain text",medium
+危险 HTML,escaped,security,"<script>alert(1)</script> and <img src=x onerror=alert(1)>",high

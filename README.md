@@ -1,8 +1,8 @@
-# Local Markdown/TXT Review Reader
+# Local Markdown/TXT/CSV Review Reader
 
 [中文说明](README.zh-CN.md)
 
-A small local-first tool for reading and reviewing folders of Markdown/TXT files.
+A small local-first tool for reading and reviewing folders of Markdown/TXT/CSV files.
 
 It turns a folder into one self-contained `reader.html`. Open that file in a browser, read across many files like a book, filter the current reading set, mark passages, and export a grouped `review.md` for AI-assisted or manual follow-up.
 
@@ -10,7 +10,7 @@ The default UI is Chinese (`locale: zh-CN`). English is available through `confi
 
 ## Why Use It
 
-This tool is useful when you have many local Markdown/TXT files from drafts, AI outputs, notes, converted documents, or project docs, and you want to:
+This tool is useful when you have many local Markdown/TXT/CSV files from drafts, AI outputs, notes, tabular checklists, converted documents, or project docs, and you want to:
 
 - read them continuously without changing the source files;
 - search and navigate within a temporary filtered reading list;
@@ -96,7 +96,7 @@ This repository uses the centralized layout because it keeps several demo and do
 ## Expected Workflow
 
 ```text
-collect or generate Markdown/TXT files
+collect or generate Markdown/TXT/CSV files
   -> build reader.html
   -> read, filter, and review locally
   -> copy or download review.md
@@ -107,10 +107,11 @@ collect or generate Markdown/TXT files
 
 ## What It Does
 
-- Reads `.md` and `.txt` files from a configured folder.
+- Reads `.md`, `.txt`, and `.csv` files from a configured folder.
 - Builds a single self-contained HTML reader.
 - Keeps source files read-only.
 - Searches title, file name, relative path, and content.
+- Renders CSV files as HTML tables and supports row-level review notes.
 - Navigates previous/next within the current filtered result set.
 - Supports font size, reading width, theme, and draggable side panel widths.
 - Supports configurable TXT paragraph mode.
@@ -170,12 +171,12 @@ your project files
 
 ## Optional Converters
 
-The core reader intentionally accepts Markdown and TXT only.
+The core reader intentionally accepts Markdown, TXT, and CSV.
 
-For non-Markdown sources, convert first:
+For other source formats, convert first:
 
 ```text
-source document -> converter -> md/txt -> build_reader.py -> reader.html
+source document -> converter -> md/txt/csv -> build_reader.py -> reader.html
 ```
 
 Current confidence levels:
@@ -203,6 +204,16 @@ Check generated HTML page quality directly:
 python tests/html_quality_check.py
 ```
 
+When changing frontend interaction, install the development dependency and run the real browser click-flow check:
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m playwright install chromium
+python tests/browser_smoke_test.py
+```
+
+This dynamic script opens the public demo in Chromium and checks `.csv` filtering, CSV row review, review-dialog submission, filtered next navigation, and `review.md` preview generation. It is a development check, not a runtime dependency for ordinary reader use.
+
 Refresh checked-in demo HTML files:
 
 ```powershell
@@ -219,9 +230,9 @@ Generated HTML contains the source text. Do not share `reader.html` publicly if 
 
 The browser reader does not write back to source files.
 
-Markdown links are disabled by default. TXT content is escaped. Embedded JSON is script-safe. Image data URLs are restricted to common raster formats.
+Markdown links are disabled by default. TXT content is escaped. CSV cells are escaped as plain table text, and formula-like values are not executed. Embedded JSON is script-safe. Image data URLs are restricted to common raster formats.
 
-Even with these protections, do not package Markdown/TXT files from unknown sources, and do not run optional converters on unknown Office documents. Review unfamiliar text files in a plain text editor first.
+Even with these protections, do not package Markdown/TXT/CSV files from unknown sources, and do not run optional converters on unknown Office documents. Review unfamiliar text files in a plain text editor first.
 
 ## License
 

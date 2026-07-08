@@ -1,5 +1,5 @@
 ---
-title: 我的 Markdown 审阅阅读器
+title: 我的 Markdown/TXT/CSV 审阅阅读器
 locale: zh-CN
 workspace_root: .
 source_dir: ./docs
@@ -8,6 +8,7 @@ flatten: true
 include:
   - "*.md"
   - "*.txt"
+  - "*.csv"
 exclude:
   - "*private*"
   - "*secret*"
@@ -67,7 +68,7 @@ stats:
 
 # 配置模板
 
-这个文件是给其他 Markdown/TXT 项目复制使用的模板，不绑定本仓库的 demo 目录。
+这个文件是给其他 Markdown/TXT/CSV 项目复制使用的模板，不绑定本仓库的 demo 目录。
 
 最小使用方式：
 
@@ -79,7 +80,7 @@ python build_reader.py workspace.config.md
 复制到自己的项目后，通常只需要改：
 
 - `title`：阅读器标题；
-- `source_dir`：你的 Markdown/TXT 文件夹；
+- `source_dir`：你的 Markdown/TXT/CSV 文件夹；
 - `output`：生成的 HTML 路径；
 - `review.actions` 和 `review.targets`：你的批复动作和目标。
 
@@ -93,6 +94,6 @@ workspace_root: ..
 
 ## English
 
-This is a portable config template for other Markdown/TXT projects. It is not tied to this repository's demo folders.
+This is a portable config template for other Markdown/TXT/CSV projects. It is not tied to this repository's demo folders.
 
 Copy it to `workspace.config.md`, then adjust `title`, `source_dir`, `output`, review actions, and review targets.

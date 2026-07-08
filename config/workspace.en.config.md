@@ -1,5 +1,5 @@
 ---
-title: Local Markdown/TXT Review Reader Demo
+title: Local Markdown/TXT/CSV Review Reader Demo
 locale: en
 workspace_root: ..
 source_dir: ./examples/basic/drafts
@@ -8,6 +8,7 @@ flatten: true
 include:
   - "*.md"
   - "*.txt"
+  - "*.csv"
 exclude:
   - "*draft-private*"
 order: natural

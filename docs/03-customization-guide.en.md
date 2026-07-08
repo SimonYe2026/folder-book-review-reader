@@ -16,7 +16,7 @@ Config file
 
 The config decides where to read from, how to sort files, UI labels, and review options.
 
-The Python script scans files, renders Markdown/TXT, and generates HTML.
+The Python script scans files, renders Markdown/TXT/CSV, and generates HTML.
 
 The HTML reader handles browser-side reading, filtering, navigation, reviewing, and exporting.
 
@@ -30,7 +30,7 @@ For a minimal integration into another project:
 copy build_reader.py
 copy workspace.template.config.md and rename it to workspace.config.md
 set workspace_root to the project root if the config lives elsewhere
-point source_dir to your md/txt folder
+point source_dir to your md/txt/csv folder
 point output to your output folder
 run python build_reader.py path/to/workspace.config.md
 ```
@@ -62,6 +62,7 @@ recursive: true
 include:
   - "*.md"
   - "*.txt"
+  - "*.csv"
 exclude:
   - "*private*"
 ```
@@ -136,7 +137,9 @@ Options:
 
 ## Converter Extensions
 
-The core reader only commits to `.md` / `.txt`.
+The core reader commits to `.md` / `.txt` / `.csv`.
+
+CSV is displayed as a table chapter with full-text search and row-level review notes, but the browser reader does not edit source CSV files.
 
 For more formats, add independent converters:
 

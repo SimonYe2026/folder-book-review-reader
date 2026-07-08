@@ -52,6 +52,17 @@ review:
         raise AssertionError("config parser should support inline lists and empty lists")
     if parsed["display"]["theme"] != "light # not comment":
         raise AssertionError("config parser should preserve # inside quoted strings")
+    default_config_path = ROOT / "output" / "default-include.config.md"
+    default_config_path.parent.mkdir(exist_ok=True)
+    default_config_path.write_text(
+        "---\n"
+        "source_dir: ./examples/basic/drafts\n"
+        "---\n",
+        encoding="utf-8",
+    )
+    default_config = build_reader.load_config(default_config_path)
+    if default_config["include"] != ["*.md", "*.txt", "*.csv"]:
+        raise AssertionError("default include should cover Markdown, TXT, and CSV")
 
     line_html = build_reader.render_text_basic("one\ntwo\n", paragraph_mode="line")
     if line_html.count('data-block-type="paragraph"') != 2:
@@ -62,6 +73,25 @@ review:
     )
     if "<script>" in unsafe_txt or "href=" in unsafe_txt or "src=" in unsafe_txt:
         raise AssertionError("TXT rendering should escape HTML and never activate markdown links or images")
+
+    csv_html = build_reader.render_csv_basic(
+        'name,note,risk\n'
+        'alpha,"quoted, comma",low\n'
+        'beta,"line one\nline two",medium\n'
+        'formula,"=SUM(1,2) and @name",medium\n'
+        'danger,"<script>alert(1)</script><img src=x onerror=alert(1)>",high\n',
+        labels=build_reader.DEFAULT_LABELS_EN,
+    )
+    if '<table class="csv-table">' not in csv_html or 'data-block-type="csv-row"' not in csv_html:
+        raise AssertionError("CSV rendering should create a real table with row review anchors")
+    if "csv-row-action" in csv_html or "csv-row-tools" in csv_html or 'class="btn csv-current-row-review"' not in csv_html:
+        raise AssertionError("CSV review control should render as a single table-level button outside the table")
+    if "quoted, comma" not in csv_html or "line one" not in csv_html or "line two" not in csv_html:
+        raise AssertionError("CSV rendering should preserve quoted commas and quoted newlines")
+    if "<script>" in csv_html or "onerror=" in csv_html or "<img" in csv_html:
+        raise AssertionError("CSV rendering should escape HTML and never activate cell content")
+    if "&#61;SUM(1,2)" not in csv_html or "@name" not in csv_html:
+        raise AssertionError("CSV formula-like cells should remain visible as plain text")
 
     blank_line_html = build_reader.render_text_basic("one\ntwo\n\nthree\n", paragraph_mode="blank_line")
     if blank_line_html.count('data-block-type="paragraph"') != 2:
@@ -170,7 +200,7 @@ review:
 
     run([sys.executable, "-m", "py_compile", "build_reader.py", "serve_reader.py", "tools/convert_docs.py"])
     run([sys.executable, "-m", "py_compile", "tools/build_demos.py"])
-    run([sys.executable, "-m", "py_compile", "tests/html_quality_check.py"])
+    run([sys.executable, "-m", "py_compile", "tests/html_quality_check.py", "tests/browser_smoke_test.py"])
 
     license_file = ROOT / "LICENSE"
     if not license_file.exists():
@@ -239,7 +269,7 @@ review:
             "---\n"
             "title: Empty Source\n"
             "source_dir: ./empty\n"
-            "include: [\"*.md\", \"*.txt\"]\n"
+            "include: [\"*.md\", \"*.txt\", \"*.csv\"]\n"
             "---\n",
             encoding="utf-8",
         )
@@ -249,7 +279,7 @@ review:
             capture_output=True,
             text=True,
         )
-        if empty_result.returncode != 2 or "No .md or .txt files matched" not in empty_result.stderr:
+        if empty_result.returncode != 2 or "No .md, .txt, or .csv files matched" not in empty_result.stderr:
             raise AssertionError("empty source directories should fail with a clear config error")
 
         no_match_dir = temp_path / "no-match"
@@ -260,7 +290,7 @@ review:
             "---\n"
             "title: No Match\n"
             "source_dir: ./no-match\n"
-            "include: [\"*.md\", \"*.txt\"]\n"
+            "include: [\"*.md\", \"*.txt\", \"*.csv\"]\n"
             "---\n",
             encoding="utf-8",
         )
@@ -270,7 +300,7 @@ review:
             capture_output=True,
             text=True,
         )
-        if no_match_result.returncode != 2 or "No .md or .txt files matched" not in no_match_result.stderr:
+        if no_match_result.returncode != 2 or "No .md, .txt, or .csv files matched" not in no_match_result.stderr:
             raise AssertionError("non-matching source directories should fail with a clear config error")
 
         nested_workspace = temp_path / "nested-workspace"
@@ -335,7 +365,7 @@ review:
     assert_contains(
         reader,
         [
-            "本地 Markdown/TXT 审阅阅读器 Demo",
+            "本地 Markdown/TXT/CSV 审阅阅读器 Demo",
             "floatingReviewButton",
             "leftPanelResizer",
             "rightPanelResizer",
@@ -352,6 +382,18 @@ review:
             "zh-001-introduction.md",
             "zh-002-review-workflow.md",
             "zh-003-plain-text.txt",
+            "004-review-table.csv",
+            "csv-table",
+            '<option value=".csv">.csv</option>',
+            "csv-current-row-review",
+            "data-block-type=\\\"csv-row\\\"",
+            "function blockQuoteText(block)",
+            "block.cells || []",
+            "function csvSelectionMeta(selection)",
+            "range.intersectsNode(cell)",
+            "position_text",
+            "const activeCsvRow = els.content.querySelector(\".csv-chapter .csv-row-active\")",
+            "CSV · 5 行 · 5 列",
             "（未知链接，请回源文件查看）",
             "function move(delta)",
             "const chapters = visibleChapters();",
@@ -372,7 +414,7 @@ review:
         english_reader,
         [
             "(Unknown link, check the source file)",
-            "Local Markdown/TXT Review Reader Demo",
+            "Local Markdown/TXT/CSV Review Reader Demo",
             'return Object.prototype.hasOwnProperty.call(labels, key) ? labels[key] : key;',
         ],
     )
@@ -508,10 +550,10 @@ review:
                 "12312312",
             ],
         )
-    assert_contains(generated_basic, ["本地 Markdown/TXT 审阅阅读器 Demo", "zh-001-introduction.md"])
+    assert_contains(generated_basic, ["本地 Markdown/TXT/CSV 审阅阅读器 Demo", "zh-001-introduction.md", "004-review-table.csv"])
     assert_contains(
         generated_english,
-        ["Local Markdown/TXT Review Reader Demo", "(Unknown link, check the source file)"],
+        ["Local Markdown/TXT/CSV Review Reader Demo", "(Unknown link, check the source file)", "004-review-table.csv"],
     )
     assert_contains(
         generated_docs,

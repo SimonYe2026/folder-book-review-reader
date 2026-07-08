@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import fnmatch
 import html
+import io
 import json
 import re
 import sys
@@ -11,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 
-SUPPORTED_EXTENSIONS = {".md", ".txt"}
+SUPPORTED_EXTENSIONS = {".md", ".txt", ".csv"}
 VALID_ORDERS = {"natural", "natural_desc", "modified_desc"}
 DISABLED_LINK_TEXT_ZH = "（未知链接，请回源文件查看）"
 DISABLED_LINK_TEXT_EN = "(Unknown link, check the source file)"
@@ -53,6 +55,7 @@ DEFAULT_LABELS_ZH = {
     "copied": "已复制",
     "empty_reviews": "还没有批复。选中文本或点击段落旁的批复按钮。",
     "review": "批复",
+    "review_current_row": "批复当前行",
     "add_review": "加入批复",
     "quote_original": "引用原文",
     "action": "动作",
@@ -65,6 +68,12 @@ DEFAULT_LABELS_ZH = {
     "paragraph": "第 ? 段",
     "paragraph_prefix": "第",
     "paragraph_suffix": "段",
+    "row_prefix": "第",
+    "row_suffix": "行",
+    "column_prefix": "第",
+    "column_suffix": "列",
+    "csv_rows": "行",
+    "csv_columns": "列",
     "position_prefix": "当前筛选结果第",
     "current_prefix": "当前",
     "filtered_prefix": "筛选",
@@ -119,6 +128,7 @@ DEFAULT_LABELS_EN = {
     "copied": "Copied",
     "empty_reviews": "No review notes yet. Select text or use a paragraph review button.",
     "review": "Review",
+    "review_current_row": "Review Current Row",
     "add_review": "Add Review",
     "quote_original": "Quote",
     "action": "Action",
@@ -131,6 +141,12 @@ DEFAULT_LABELS_EN = {
     "paragraph": "paragraph",
     "paragraph_prefix": "paragraph",
     "paragraph_suffix": "",
+    "row_prefix": "row",
+    "row_suffix": "",
+    "column_prefix": "column",
+    "column_suffix": "",
+    "csv_rows": "rows",
+    "csv_columns": "columns",
     "position_prefix": "Filtered result",
     "current_prefix": "Current",
     "filtered_prefix": "Filtered",
@@ -340,8 +356,8 @@ def load_config(config_path: Path) -> dict[str, Any]:
     if not config.get("source_dir"):
         raise ConfigError("Missing required field: source_dir")
 
-    config.setdefault("title", "Local Markdown/TXT Review Reader")
-    config.setdefault("include", ["*.md", "*.txt"])
+    config.setdefault("title", "Local Markdown/TXT/CSV Review Reader")
+    config.setdefault("include", ["*.md", "*.txt", "*.csv"])
     config.setdefault("exclude", [])
     config.setdefault("order", "natural")
     config.setdefault("workspace_root", ".")
@@ -485,11 +501,14 @@ def discover_files(workspace_root: Path, config: dict[str, Any]) -> tuple[list[P
             files.reverse()
 
     if not files:
-        raise ConfigError("No .md or .txt files matched the configured include/exclude rules.")
+        raise ConfigError("No .md, .txt, or .csv files matched the configured include/exclude rules.")
     return files, source_dir
 
 
 def extract_title(path: Path, text: str) -> str:
+    if path.suffix.lower() == ".csv":
+        return path.stem
+
     def plain_title(value: str) -> str:
         value = re.sub(r"\{\{(?:color:[0-9A-Fa-f]{6}|small)\}\}|\{\{/(?:color|small)\}\}", "", value)
         value = re.sub(r"\*\*|\*|\+\+|==|`", "", value)
@@ -523,6 +542,10 @@ def word_count(text: str) -> int:
     chinese_chars = re.findall(r"[\u4e00-\u9fff]", text)
     latin_words = re.findall(r"[A-Za-z0-9_]+(?:['-][A-Za-z0-9_]+)?", text)
     return len(chinese_chars) + len(latin_words)
+
+
+def text_from_csv_rows(rows: list[list[str]]) -> str:
+    return "\n".join("\t".join(str(cell) for cell in row) for row in rows)
 
 
 def strip_html(value: str) -> str:
@@ -656,6 +679,10 @@ def render_docx_table(
     if nested:
         return table_html
     return f'<div class="table-wrap docx-table-wrap" data-table-index="{table_index}">{table_html}</div>'
+
+
+def csv_cell(value: str) -> str:
+    return html.escape(value).replace("=", "&#61;")
 
 
 def render_markdown_basic(text: str, labels: dict[str, str] | None = None) -> str:
@@ -823,9 +850,60 @@ def render_text_basic(text: str, paragraph_mode: str = "line") -> str:
     return "\n".join(blocks)
 
 
+def parse_csv_rows(text: str) -> list[list[str]]:
+    sample = text[:4096]
+    try:
+        dialect = csv.Sniffer().sniff(sample)
+    except csv.Error:
+        dialect = csv.excel
+    return [[str(cell) for cell in row] for row in csv.reader(io.StringIO(text), dialect)]
+
+
+def render_csv_basic(text: str, labels: dict[str, str] | None = None) -> str:
+    labels = labels or DEFAULT_LABELS_ZH
+    rows = parse_csv_rows(text)
+    column_count = max((len(row) for row in rows), default=0)
+    data_rows = rows[1:] if rows else []
+    row_count = len(data_rows)
+    review_label = html.escape(str(labels.get("review_current_row", "Review Current Row")))
+    rows_label = html.escape(str(labels.get("csv_rows", "rows")))
+    columns_label = html.escape(str(labels.get("csv_columns", "columns")))
+
+    summary = (
+        f'<div class="csv-summary"><span>CSV · {row_count} {rows_label} · '
+        f'{column_count} {columns_label}</span>'
+        f'<button type="button" class="btn csv-current-row-review">{review_label}</button></div>'
+    )
+    if not rows:
+        return f'<section class="csv-chapter">{summary}</section>'
+
+    header = rows[0] + [""] * max(0, column_count - len(rows[0]))
+    head_cells = [f"<th>{csv_cell(cell)}</th>" for cell in header[:column_count]]
+
+    body_rows: list[str] = []
+    for index, row in enumerate(data_rows, start=1):
+        padded = row + [""] * max(0, column_count - len(row))
+        data_cells = "".join(f"<td>{csv_cell(cell)}</td>" for cell in padded[:column_count])
+        body_rows.append(
+            f'<tr data-block-index="{index}" data-block-type="csv-row">{data_cells}</tr>'
+        )
+
+    table = (
+        '<div class="table-wrap csv-table-wrap">'
+        '<table class="csv-table">'
+        f'<thead><tr>{"".join(head_cells)}</tr></thead>'
+        f'<tbody>{"".join(body_rows)}</tbody>'
+        "</table>"
+        "</div>"
+    )
+    return f'<section class="csv-chapter">{summary}{table}</section>'
+
+
 def render_content(path: Path, text: str, config: dict[str, Any]) -> str:
     if path.suffix.lower() == ".md":
         return render_markdown_basic(text, labels=dict(config.get("labels") or {}))
+    if path.suffix.lower() == ".csv":
+        return render_csv_basic(text, labels=dict(config.get("labels") or {}))
     paragraph_mode = str((config.get("text") or {}).get("paragraph_mode") or "line")
     return render_text_basic(text, paragraph_mode=paragraph_mode)
 
@@ -849,23 +927,33 @@ def build_chapters(workspace_root: Path, source_dir: Path, files: list[Path], co
         path_segments = list(relative_to_source.parts[:-1])
         content_html = render_content(path, text, config)
         title = str(frontmatter.get("title") or extract_title(path, text))
-        chapters.append(
-            {
-                "id": f"chapter-{index:03d}",
-                "title": title,
-                "file_name": path.name,
-                "relative_path": relative_path,
-                "path": path.relative_to(workspace_root).as_posix(),
-                "folder": "/".join(path_segments),
-                "path_segments": path_segments,
-                "prefix": derive_prefix(path.stem),
-                "ext": path.suffix.lower(),
-                "word_count": word_count(text),
-                "modified_time": datetime.fromtimestamp(stat.st_mtime).isoformat(timespec="seconds"),
-                "content_html": content_html,
-                "content_text": strip_html(text),
-            }
-        )
+        chapter: dict[str, Any] = {
+            "id": f"chapter-{index:03d}",
+            "title": title,
+            "file_name": path.name,
+            "relative_path": relative_path,
+            "path": path.relative_to(workspace_root).as_posix(),
+            "folder": "/".join(path_segments),
+            "path_segments": path_segments,
+            "prefix": derive_prefix(path.stem),
+            "ext": path.suffix.lower(),
+            "word_count": word_count(text),
+            "modified_time": datetime.fromtimestamp(stat.st_mtime).isoformat(timespec="seconds"),
+            "content_html": content_html,
+            "content_text": strip_html(text),
+        }
+        if path.suffix.lower() == ".csv":
+            csv_rows = parse_csv_rows(text)
+            csv_text = text_from_csv_rows(csv_rows)
+            chapter.update(
+                {
+                    "row_count": max(0, len(csv_rows) - 1),
+                    "column_count": max((len(row) for row in csv_rows), default=0),
+                    "word_count": word_count(csv_text),
+                    "content_text": csv_text,
+                }
+            )
+        chapters.append(chapter)
     return chapters
 
 
@@ -1071,6 +1159,11 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
     code, pre {{ font-family: Consolas, "Cascadia Mono", monospace; }}
     .table-wrap {{ overflow: auto; margin: 1em 0; border: 1px solid var(--line); border-radius: 6px; }}
     table {{ width: 100%; border-collapse: collapse; min-width: 520px; background: var(--panel); }}
+    .csv-summary {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: .9em; margin: .25em 0 .5em; }}
+    .csv-current-row-review {{ min-height: 30px; padding: 3px 8px; font-size: 12px; white-space: nowrap; }}
+    .csv-table {{ min-width: 640px; }}
+    .csv-table tr[data-block-type="csv-row"] {{ cursor: pointer; }}
+    .csv-table tr.csv-row-active td {{ background: color-mix(in srgb, var(--accent-soft) 78%, var(--panel)); box-shadow: inset 3px 0 0 var(--accent); }}
     .docx-structured-table {{ min-width: 520px; }}
     .docx-nested-table {{ min-width: 260px; margin: 6px 0; border: 1px solid var(--line); }}
     th, td {{ border-bottom: 1px solid var(--line); padding: 9px 10px; vertical-align: top; }}
@@ -1167,6 +1260,7 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
           <option value="all">{label('all')}</option>
           <option value=".md">.md</option>
           <option value=".txt">.txt</option>
+          <option value=".csv">.csv</option>
         </select>
         <button class="btn" id="clearFilterButton" type="button">{label('clear')}</button>
         <button class="btn" id="sortButton" type="button">{label('sort_asc')}</button>
@@ -1357,6 +1451,13 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       return readingTimeLabel(totalWords);
     }}
 
+    function chapterCsvMeta(chapter) {{
+      if (chapter.ext !== ".csv") return "";
+      const rows = Number.isFinite(chapter.row_count) ? chapter.row_count : 0;
+      const columns = Number.isFinite(chapter.column_count) ? chapter.column_count : 0;
+      return `CSV · ${{rows}} ${{label("csv_rows")}} · ${{columns}} ${{label("csv_columns")}}`;
+    }}
+
     function loadState() {{
       try {{
         Object.assign(state, JSON.parse(localStorage.getItem(storageKey) || "{{}}"));
@@ -1504,12 +1605,13 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
         return;
       }}
       for (const [index, chapter] of chapters.entries()) {{
+        const csvMeta = chapterCsvMeta(chapter);
         const button = document.createElement("button");
         button.type = "button";
         button.className = "chapter-item" + (chapter.id === state.currentId ? " active" : "");
         button.innerHTML = `
           <span class="chapter-name">${{index + 1}}. ${{escapeHtml(chapter.title)}}</span>
-          <span class="chapter-meta">${{escapeHtml(chapter.relative_path)}} · ${{chapter.word_count}} ${{escapeHtml(label("words"))}} · ${{readingTimeLabel(chapter.word_count)}} · ${{chapter.ext}}</span>
+          <span class="chapter-meta">${{escapeHtml(chapter.relative_path)}} · ${{chapter.word_count}} ${{escapeHtml(label("words"))}} · ${{readingTimeLabel(chapter.word_count)}} · ${{chapter.ext}}${{csvMeta ? " · " + escapeHtml(csvMeta) : ""}}</span>
         `;
         button.addEventListener("click", () => setCurrent(chapter.id));
         els.chapterList.appendChild(button);
@@ -1518,6 +1620,7 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
 
     function addBlockReviewButtons() {{
       els.content.querySelectorAll("[data-block-index]").forEach(block => {{
+        if (block.dataset.blockType === "csv-row") return;
         if (block.querySelector(":scope > .block-review")) return;
         const button = document.createElement("button");
         button.type = "button";
@@ -1529,6 +1632,38 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
         }});
         block.appendChild(button);
       }});
+    }}
+
+    function attachCsvTables() {{
+      els.content.querySelectorAll(".csv-chapter").forEach(chapter => {{
+        const rows = Array.from(chapter.querySelectorAll('[data-block-type="csv-row"]'));
+        const reviewButton = chapter.querySelector(".csv-current-row-review");
+        const setActive = row => {{
+          rows.forEach(item => item.classList.toggle("csv-row-active", item === row));
+        }};
+        if (rows.length && !rows.some(row => row.classList.contains("csv-row-active"))) {{
+          setActive(rows[0]);
+        }}
+        rows.forEach(row => {{
+          row.addEventListener("click", () => setActive(row));
+        }});
+        reviewButton?.addEventListener("click", event => {{
+          event.stopPropagation();
+          if (selectionInsideContent()) {{
+            openReviewDialog();
+            return;
+          }}
+          openReviewDialog(chapter.querySelector(".csv-row-active") || rows[0] || null);
+        }});
+      }});
+    }}
+
+    function reviewPositionText(review) {{
+      if (review.position_text) return review.position_text;
+      if (review.block_type === "csv-row") {{
+        return `${{label("row_prefix")}} ${{review.block_index || "?"}} ${{label("row_suffix")}}`.trim();
+      }}
+      return `${{label("paragraph_prefix")}} ${{review.block_index || "?"}} ${{label("paragraph_suffix")}}`.trim();
     }}
 
     function attachCodeCopy() {{
@@ -1563,11 +1698,13 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
         `${{chapter.word_count}} ${{label("words")}}`,
         readingTimeLabel(chapter.word_count),
         chapter.ext,
+        chapterCsvMeta(chapter),
         `${{label("position_prefix")}} ${{visibleIndex + 1}} / ${{chapters.length}}`,
         chapter.modified_time
-      ].join(" · ");
+      ].filter(Boolean).join(" · ");
       els.content.innerHTML = chapter.content_html;
       addBlockReviewButtons();
+      attachCsvTables();
       attachCodeCopy();
       const prevDisabled = visibleIndex <= 0;
       const nextDisabled = visibleIndex === -1 || visibleIndex >= chapters.length - 1;
@@ -1584,6 +1721,60 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       const range = selection.getRangeAt(0);
       if (!els.content.contains(range.commonAncestorContainer)) return "";
       return selection.toString().trim();
+    }}
+
+    function closestElement(node, selector) {{
+      while (node && node !== els.content) {{
+        if (node.nodeType === 1 && node.matches?.(selector)) return node;
+        node = node.parentNode;
+      }}
+      return null;
+    }}
+
+    function rangeLabel(start, end, prefix, suffix) {{
+      if (!start && !end) return "";
+      if (start === end || !end) return `${{prefix}} ${{start || "?"}} ${{suffix}}`.trim();
+      return `${{prefix}} ${{start}}-${{end}} ${{suffix}}`.trim();
+    }}
+
+    function csvSelectionMeta(selection) {{
+      if (!selection || selection.isCollapsed) return null;
+      const range = selection.getRangeAt(0);
+      let cells = Array.from(els.content.querySelectorAll(".csv-table tbody td"))
+        .filter(cell => {{
+          try {{
+            return range.intersectsNode(cell);
+          }} catch (error) {{
+            return false;
+          }}
+        }});
+      if (!cells.length) {{
+        cells = [closestElement(range.startContainer, "td, th"), closestElement(range.endContainer, "td, th")].filter(Boolean);
+      }}
+      const rows = cells.map(cell => cell.closest('[data-block-type="csv-row"]')).filter(Boolean);
+      if (!rows.length) return null;
+      const rowNumbers = rows
+        .map(row => Number(row.dataset.blockIndex))
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      const columnNumbers = cells
+        .map(cell => cell.cellIndex + 1)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      const firstRow = rows.reduce((best, row) => {{
+        if (!best) return row;
+        return Number(row.dataset.blockIndex) < Number(best.dataset.blockIndex) ? row : best;
+      }}, null);
+      const rowLabel = rangeLabel(rowNumbers[0], rowNumbers[rowNumbers.length - 1], label("row_prefix"), label("row_suffix"));
+      const columnLabel = rangeLabel(columnNumbers[0], columnNumbers[columnNumbers.length - 1], label("column_prefix"), label("column_suffix"));
+      return {{
+        block: firstRow,
+        block_index: rowNumbers[0] === rowNumbers[rowNumbers.length - 1]
+          ? String(rowNumbers[0])
+          : `${{rowNumbers[0]}}-${{rowNumbers[rowNumbers.length - 1]}}`,
+        block_type: "csv-cell-selection",
+        position_text: [rowLabel, columnLabel].filter(Boolean).join("，")
+      }};
     }}
 
     function captureSelection() {{
@@ -1604,11 +1795,13 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
           node = node.parentNode;
         }}
       }}
+      const csvMeta = csvSelectionMeta(selection);
       state.lastSelection = {{
         quote: selected,
-        block,
-        block_index: block?.dataset?.blockIndex || "",
-        block_type: block?.dataset?.blockType || "selection"
+        block: csvMeta?.block || block,
+        block_index: csvMeta?.block_index || block?.dataset?.blockIndex || "",
+        block_type: csvMeta?.block_type || block?.dataset?.blockType || "selection",
+        position_text: csvMeta?.position_text || ""
       }};
     }}
 
@@ -1694,8 +1887,23 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
           node = node.parentNode;
         }}
       }}
+      const activeCsvRow = els.content.querySelector(".csv-chapter .csv-row-active");
+      if (activeCsvRow) return activeCsvRow;
       if (state.lastSelection?.block) return state.lastSelection.block;
       return els.content.querySelector("[data-block-index]");
+    }}
+
+    function blockQuoteText(block) {{
+      if (!block) return "";
+      if (block.dataset?.blockType === "csv-row") {{
+        return Array.from(block.cells || [])
+          .map(cell => cell.textContent.trim())
+          .join("\\t")
+          .trim();
+      }}
+      const clone = block.cloneNode(true);
+      clone.querySelectorAll(".block-review").forEach(button => button.remove());
+      return clone.textContent.trim();
     }}
 
     function populateDialogOptions() {{
@@ -1717,11 +1925,7 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       const targetBlock = block || nearestReviewBlock(block);
       const quote = selected
         || (cached?.quote)
-        || (targetBlock ? (() => {{
-          const clone = targetBlock.cloneNode(true);
-          clone.querySelectorAll(".block-review").forEach(button => button.remove());
-          return clone.textContent.trim();
-        }})() : "");
+        || blockQuoteText(targetBlock);
       if (!quote) return;
       state.pendingReview = {{
         chapter_id: chapter.id,
@@ -1730,6 +1934,7 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
         title: chapter.title,
         block_index: cached?.block_index || targetBlock?.dataset?.blockIndex || "",
         block_type: cached?.block_type || targetBlock?.dataset?.blockType || "selection",
+        position_text: cached?.position_text || "",
         quote
       }};
       state.lastSelection = null;
@@ -1793,7 +1998,7 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
         group.items.forEach((review, index) => {{
           lines.push(`### ${{label("review_label")}} ${{index + 1}}: ${{review.action}} -> ${{review.target}}`);
           lines.push("");
-          lines.push(`- ${{label("position_label")}}: ${{label("paragraph_prefix")}} ${{review.block_index || "?"}} ${{label("paragraph_suffix")}}`);
+          lines.push(`- ${{label("position_label")}}: ${{reviewPositionText(review)}}`);
           lines.push(`- ${{label("time_label")}}: ${{review.created_at}}`);
           lines.push("");
           lines.push(`#### ${{label("quote_heading")}}`);
@@ -1835,7 +2040,7 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
             <header>
               <div>
                 <strong>#${{index + 1}} ${{escapeHtml(review.action)}} -> ${{escapeHtml(review.target)}}</strong>
-                <div class="small-text">${{escapeHtml(review.relative_path)}} · ${{escapeHtml(label("paragraph_prefix"))}} ${{escapeHtml(review.block_index || "?")}} ${{escapeHtml(label("paragraph_suffix"))}}</div>
+                <div class="small-text">${{escapeHtml(review.relative_path)}} · ${{escapeHtml(reviewPositionText(review))}}</div>
               </div>
               <button class="btn danger" type="button" data-delete-review="${{review.id}}">${{escapeHtml(label("delete"))}}</button>
             </header>

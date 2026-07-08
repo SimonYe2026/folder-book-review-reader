@@ -56,6 +56,14 @@ python tests/smoke_test.py
 python tests/html_quality_check.py
 ```
 
+- If the release changes frontend interaction, review dialogs, filtered navigation, or CSV row review, also run the dynamic browser check:
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m playwright install chromium
+python tests/browser_smoke_test.py
+```
+
 - GitHub Actions runs the same smoke test on push, pull request, or manual dispatch:
 
 ```text
@@ -66,6 +74,7 @@ The current smoke test covers:
 
 - Config parsing.
 - Basic Markdown/TXT rendering.
+- CSV parsing, table rendering, dangerous-cell escaping, and row-level review anchors.
 - TXT rendering does not activate HTML, Markdown links, or image syntax.
 - Disabled links and localized placeholders.
 - Common raster image data URLs still render.
@@ -94,6 +103,7 @@ The current smoke test covers:
 - Review dialog can add review notes.
 - When browser selection mini menus appear, such as in Edge, the floating review button still works as an alternative to the `R` shortcut.
 - Review board can edit, delete, and clear review notes.
+- CSV demo scrolls horizontally, search can match cells, and row-level review export shows `row N`.
 - Copied and downloaded `review.md` is grouped by file.
 - Downloaded `review.md` can be repackaged as a normal Markdown reader.
 - Link placeholders, image display, and converted inline styles look correct in the browser.
@@ -120,9 +130,10 @@ For each public demo, confirm:
 - The browser reader does not write back to source files.
 - Markdown links do not generate clickable `<a href=...>` elements.
 - TXT content is escaped as text and does not activate HTML or Markdown syntax.
+- CSV cells are shown as table text, and HTML or formula-like values are not executed.
 - Generated HTML contains source content, and README explains the sensitive-content risk.
 - Optional converters read source documents and write converted outputs only.
-- README and security notes warn against packaging Markdown/TXT from unknown sources or running optional converters on unknown Office documents.
+- README and security notes warn against packaging Markdown/TXT/CSV from unknown sources or running optional converters on unknown Office documents.
 
 ## Known Current Limits
 

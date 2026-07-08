@@ -21,7 +21,7 @@ Python owns file-system access and generation. The browser only handles data alr
 
 1. configuration parsing and path safety checks;
 2. file scanning, sorting, and chapter-data generation;
-3. safe Markdown/TXT-to-HTML conversion;
+3. safe Markdown/TXT/CSV-to-HTML conversion;
 4. assembly of the HTML, CSS, and JavaScript application.
 
 The optional DOCX converter lives in `tools/convert_docs.py`. It is a preprocessing step, and Office parsing should not be moved into the browser.
@@ -62,7 +62,7 @@ jQuery simplifies some DOM syntax but does not solve reactive state or component
 
 - clearer Python module boundaries and separated template assets;
 - componentization and more granular state updates for the review board;
-- pluggable input converters with Markdown/TXT or an explicit intermediate structure as the common output;
+- pluggable input converters with Markdown/TXT/CSV or an explicit intermediate structure as the common output;
 - stronger keyboard and accessibility support;
 - search performance and incremental rendering for large file collections;
 - export-format adapters so different AI or team workflows can reuse the same review data.
@@ -91,7 +91,17 @@ python build_reader.py config/workspace.config.md --dry-run
 python build_reader.py config/workspace.config.md --overwrite
 ```
 
-`html_quality_check.py` is a static page-quality check. It does not launch a browser or simulate clicks. It checks generated HTML for complete page structure, chapter data, review hooks, navigation hooks, and safety boundaries. Browser click-flow tests can be added later as a higher-level test layer.
+`html_quality_check.py` is a static page-quality check. It does not launch a browser or simulate clicks. It checks generated HTML for complete page structure, chapter data, review hooks, navigation hooks, and safety boundaries.
+
+For frontend interaction changes, also run the dynamic browser smoke test:
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m playwright install chromium
+python tests\browser_smoke_test.py
+```
+
+`browser_smoke_test.py` starts a temporary local HTTP server and uses real Chromium clicks against the public demo. It currently covers `.csv` filtering, clicking a CSV row and pressing `R`, review-dialog submission, filtered next navigation, and `review.md` preview generation. This script is a development/release-check tool, not a runtime dependency for ordinary reader users.
 
 For frontend interaction changes, also verify manually:
 
@@ -100,6 +110,7 @@ For frontend interaction changes, also verify manually:
 - review-board updates do not interrupt Chinese IME composition;
 - settings and reviews recover from localStorage after refresh;
 - a downloaded `review.md` can be repackaged and read as ordinary Markdown;
+- CSV tables are searchable, and row-level review exports have clear positions;
 - untrusted links stay disabled and text or embedded data cannot become executable script.
 
 ## Compatibility Principles

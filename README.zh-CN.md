@@ -1,8 +1,8 @@
-# 本地 Markdown/TXT 审阅阅读器
+# 本地 Markdown/TXT/CSV 审阅阅读器
 
 [English README](README.md)
 
-一个本地优先的小工具，用来阅读和审阅一个文件夹里的 Markdown/TXT 文件。
+一个本地优先的小工具，用来阅读和审阅一个文件夹里的 Markdown/TXT/CSV 文件。
 
 它会把文件夹打包成一个自包含的 `reader.html`。你可以在浏览器里像读一本书一样连续阅读多个文件，按关键词形成临时书单，标记段落，并导出按文件分组的 `review.md`，交给 AI 或作为人工修改清单继续处理。
 
@@ -10,7 +10,7 @@
 
 ## 适合什么场景
 
-当你手里有很多本地 Markdown/TXT 文件，例如草稿、AI 输出、笔记、转换后的文档、项目说明文件，并且想要：
+当你手里有很多本地 Markdown/TXT/CSV 文件，例如草稿、AI 输出、笔记、表格清单、转换后的文档、项目说明文件，并且想要：
 
 - 连续阅读，而不修改源文件；
 - 搜索并只在当前筛选结果里翻篇；
@@ -98,7 +98,7 @@ output: ./output/reader.html
 ## 预期工作流
 
 ```text
-收集或生成 Markdown/TXT 文件
+收集或生成 Markdown/TXT/CSV 文件
   -> 打包 reader.html
   -> 本地阅读、筛选、审阅
   -> 复制或下载 review.md
@@ -109,10 +109,11 @@ output: ./output/reader.html
 
 ## 功能
 
-- 读取配置目录下的 `.md` 和 `.txt` 文件。
+- 读取配置目录下的 `.md`、`.txt` 和 `.csv` 文件。
 - 生成单文件 `reader.html`。
 - 不修改源文件。
 - 支持标题、文件名、相对路径、正文搜索。
+- 支持把 CSV 渲染为 HTML 表格，并按行加入批复。
 - 上一篇/下一篇基于当前筛选结果跳转。
 - 支持字体大小、阅读宽度、主题、左右栏拖拽宽度。
 - 支持 TXT 段落模式配置。
@@ -173,12 +174,12 @@ GitHub Pages 已启用：
 
 ## 可选转换器
 
-核心阅读器只接受 Markdown/TXT。
+核心阅读器接受 Markdown/TXT/CSV。
 
-如果要处理非 Markdown/TXT 的来源，建议先转成 Markdown/TXT：
+如果要处理其他来源，建议先转成 Markdown/TXT/CSV：
 
 ```text
-原始文档 -> 转换器 -> md/txt -> build_reader.py -> reader.html
+原始文档 -> 转换器 -> md/txt/csv -> build_reader.py -> reader.html
 ```
 
 当前质量分级：
@@ -206,6 +207,16 @@ python tests/smoke_test.py
 python tests/html_quality_check.py
 ```
 
+如果你正在修改前端交互，可以安装开发依赖并运行真实浏览器点击流检查：
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m playwright install chromium
+python tests/browser_smoke_test.py
+```
+
+这个动态脚本会用 Chromium 打开公开 demo，检查 `.csv` 筛选、CSV 行批复、审阅弹窗、筛选后翻篇和 `review.md` 预览。它只是开发检查依赖，不是普通使用 reader 的依赖。
+
 刷新已提交的 demo HTML：
 
 ```powershell
@@ -222,9 +233,9 @@ GitHub Actions 会在 push 和 pull request 时运行 smoke test。
 
 浏览器阅读器不会写回源文件。
 
-Markdown 链接默认禁用。TXT 内容会被转义。嵌入 JSON 做了脚本安全处理。图片 data URL 只允许常见 raster 格式。
+Markdown 链接默认禁用。TXT 内容会被转义。CSV 单元格会被转义为普通表格文本，公式样内容不会执行。嵌入 JSON 做了脚本安全处理。图片 data URL 只允许常见 raster 格式。
 
-即便有这些防护，也不建议打包来路不明的 Markdown/TXT 文件，也不建议对来路不明的 Office 文档运行可选转换器。陌生文本文件请先用普通文本编辑器检查。
+即便有这些防护，也不建议打包来路不明的 Markdown/TXT/CSV 文件，也不建议对来路不明的 Office 文档运行可选转换器。陌生文本文件请先用普通文本编辑器检查。
 
 ## 许可证
 

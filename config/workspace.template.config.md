@@ -1,5 +1,5 @@
 ---
-title: 我的 Markdown 审阅阅读器
+title: 我的 Markdown/TXT/CSV 审阅阅读器
 locale: zh-CN
 workspace_root: ..
 source_dir: ./docs
@@ -8,6 +8,7 @@ flatten: true
 include:
   - "*.md"
   - "*.txt"
+  - "*.csv"
 exclude:
   - "*private*"
   - "*secret*"
@@ -79,6 +80,7 @@ your-md-project/
   docs/
     *.md
     *.txt
+    *.csv
   output/
     reader.html
 ```
@@ -93,7 +95,7 @@ python build_reader.py config/workspace.config.md
 复制到自己的项目后，通常只需要改：
 
 - `title`：阅读器标题；
-- `source_dir`：你的 Markdown/TXT 文件夹；
+- `source_dir`：你的 Markdown/TXT/CSV 文件夹；
 - `output`：生成的 HTML 路径；
 - `review.actions` 和 `review.targets`：你的批复动作和目标。
 

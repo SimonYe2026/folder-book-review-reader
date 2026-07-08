@@ -16,7 +16,7 @@
 
 配置文件决定读哪里、怎么排序、界面文案和批复选项。
 
-Python 脚本负责扫描文件、转换 Markdown/TXT、生成 HTML。
+Python 脚本负责扫描文件、转换 Markdown/TXT/CSV、生成 HTML。
 
 HTML 阅读器负责浏览器里的阅读、筛选、翻页、批复和导出。
 
@@ -30,7 +30,7 @@ HTML 阅读器负责浏览器里的阅读、筛选、翻页、批复和导出。
 复制 build_reader.py
 复制 workspace.template.config.md，并改名为 workspace.config.md
 如果配置文件不在项目根目录，把 workspace_root 指向项目根目录
-把 source_dir 指向自己的 md/txt 文件夹
+把 source_dir 指向自己的 md/txt/csv 文件夹
 把 output 指向自己的输出目录
 运行 python build_reader.py path/to/workspace.config.md
 ```
@@ -62,6 +62,7 @@ recursive: true
 include:
   - "*.md"
   - "*.txt"
+  - "*.csv"
 exclude:
   - "*private*"
 ```
@@ -136,7 +137,9 @@ text:
 
 ## 转换器扩展
 
-核心阅读器只承诺 `.md` / `.txt`。
+核心阅读器承诺 `.md` / `.txt` / `.csv`。
+
+CSV 会作为表格型章节展示，支持全文搜索和按行批复，但不在浏览器里编辑源 CSV。
 
 如果要支持更多格式，建议增加独立转换器：
 

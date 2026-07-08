@@ -1,5 +1,5 @@
 ---
-title: 本地 Markdown/TXT 审阅阅读器 Demo
+title: 本地 Markdown/TXT/CSV 审阅阅读器 Demo
 locale: zh-CN
 workspace_root: .
 source_dir: ./examples/basic/drafts
@@ -8,6 +8,7 @@ flatten: true
 include:
   - "*.md"
   - "*.txt"
+  - "*.csv"
 exclude:
   - "*draft-private*"
 order: natural

@@ -188,7 +188,7 @@ def check_data_shape(book_data: dict[str, Any], app_config: dict[str, Any], path
 
         if Path(str(relative_path)).is_absolute() or ".." in Path(str(relative_path)).parts:
             fail(path, f"chapter path should stay relative and local: {relative_path}")
-        if chapter["ext"] not in [".md", ".txt"]:
+        if chapter["ext"] not in [".md", ".txt", ".csv"]:
             fail(path, f"unexpected chapter extension: {chapter['ext']}")
         if not isinstance(chapter["word_count"], int) or chapter["word_count"] < 0:
             fail(path, f"invalid word_count for {relative_path}")
@@ -203,6 +203,12 @@ def check_data_shape(book_data: dict[str, Any], app_config: dict[str, Any], path
             fail(path, f"chapter content contains inline event handler: {relative_path}")
         if "data-block-index=" in content_html:
             reviewable_count += 1
+        if chapter["ext"] == ".csv":
+            if "csv-table" not in content_html or 'data-block-type="csv-row"' not in content_html:
+                fail(path, f"CSV chapter should render as a reviewable table: {relative_path}")
+            for key in ["row_count", "column_count"]:
+                if not isinstance(chapter.get(key), int) or chapter[key] < 0:
+                    fail(path, f"CSV chapter has invalid {key}: {relative_path}")
         total_words += chapter["word_count"]
 
     if reviewable_count == 0:

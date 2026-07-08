@@ -8,7 +8,7 @@ Chinese counterpart: `05-security-notes.zh-CN.md`
 
 This tool is a local-first reader that keeps source files read-only.
 
-It includes multiple protections, but users should not package and open Markdown/TXT files from unknown sources.
+It includes multiple protections, but users should not package and open Markdown/TXT/CSV files from unknown sources.
 
 The reason is simple: the build process places input file content into a browser page. Even with escaping, disabled links, and image restrictions, unknown input can still cause display issues, performance pressure, misleading content, or untested edge cases.
 
@@ -22,12 +22,13 @@ The current version includes these protections:
 - Links are replaced with a notice such as "Unknown link, check the source file".
 - Image URLs reject protocols such as `javascript:`.
 - `data:image/...` is limited to common raster image types: png, jpg, jpeg, gif, webp.
+- CSV cells are HTML-escaped, and formula-like values are shown as plain text only.
 - JSON embedded inside `<script>` escapes `<`, `>`, and `&`, preventing `</script>` injection.
 - Invalid `docx-table` blocks fall back to code blocks instead of breaking the build.
 - `dry-run` lets users inspect the read scope before writing output.
 - `overwrite: false` avoids replacing existing outputs.
 
-## Protection Boundaries for MD, TXT, and DOCX
+## Protection Boundaries for MD, TXT, CSV, and DOCX
 
 These protections are not limited to Markdown.
 
@@ -35,6 +36,7 @@ Content that enters the reader is protected by the final HTML packaging layer:
 
 - `.md`: rendered by the basic Markdown renderer. Links are disabled, images are restricted, and embedded JSON is safely escaped.
 - `.txt`: Markdown is not interpreted. Text is HTML-escaped directly. Even `<script>`, `[link](javascript:...)`, or image syntax is shown as plain text.
+- `.csv`: parsed with the Python standard library and rendered as an HTML table. Cells are escaped, and values such as `=SUM(...)` or `@name` are not executed or treated as links.
 - `.docx`: not read directly by the browser. It must first be converted into `.md`, then it enters the same Markdown reader protections.
 
 One important boundary remains: the DOCX converter is a conversion stage, not the browser reading stage.
@@ -44,21 +46,23 @@ The more accurate statement is:
 ```text
 TXT is more conservative inside the reader;
 MD is rendered with restrictions inside the reader;
+CSV is displayed as safe table text inside the reader;
 DOCX receives the same reader protections after conversion to MD, but unknown Office files are still not recommended at the converter stage.
 ```
 
 ## Unknown Input Is Still Not Recommended
 
-Prefer packaging Markdown/TXT that you created, downloaded from a verified source, or received from a trusted collaborator.
+Prefer packaging Markdown/TXT/CSV that you created, downloaded from a verified source, or received from a trusted collaborator.
 
 Avoid directly packaging:
 
 - Markdown from unknown sources.
 - TXT from unknown sources.
+- CSV from unknown sources.
 - Unreviewed bulk AI-generated files.
 - DOCX or other Office documents from unknown sources.
 - Large copied content from web pages, email, or chat tools.
-- Files with extremely long lines, huge base64 payloads, or abnormal nested tables.
+- Files with extremely long lines, huge base64 payloads, abnormal nested tables, or very large CSV tables.
 - Data that you do not want exposed inside a browser page.
 
 Even if these inputs do not execute scripts, they may still cause:

@@ -1,16 +1,16 @@
 # Project Status
 
-This file describes the current scope, completed capabilities, boundaries, and future directions of Local Markdown/TXT Review Reader.
+This file describes the current scope, completed capabilities, boundaries, and future directions of Local Markdown/TXT/CSV Review Reader.
 
 Chinese counterpart: `01-project-status.zh-CN.md`
 
 ## Current Positioning
 
-This project is a local-first Markdown/TXT review reader.
+This project is a local-first Markdown/TXT/CSV review reader.
 
 Its core use cases are:
 
-- Package a folder of `.md` / `.txt` files into one readable HTML file.
+- Package a folder of `.md` / `.txt` / `.csv` files into one readable HTML file.
 - Search, filter, and move through files in the browser.
 - Select text or paragraphs and create review notes for AI-assisted or manual follow-up work.
 - Export a grouped `review.md`.
@@ -29,7 +29,7 @@ It is not:
 The main flow is complete:
 
 ```text
-Local Markdown/TXT folder
+Local Markdown/TXT/CSV folder
   -> build_reader.py
   -> output/reader.html
   -> browser reading, filtering, reviewing
@@ -46,7 +46,7 @@ review.md
 
 ## Completed Capabilities
 
-- Recursive or non-recursive `.md` / `.txt` scanning.
+- Recursive or non-recursive `.md` / `.txt` / `.csv` scanning.
 - Natural order, descending order, and modified-time order.
 - Relative path, file name, extension, word count, and modified time metadata.
 - Full-text search across title, path, file name, and content.
@@ -57,10 +57,11 @@ review.md
 - Review board editing, deletion, clearing, copying, and downloading.
 - File-grouped `review.md` export.
 - Basic rendering for Markdown tables, code blocks, quotes, lists, and images.
+- CSV table display, full-text search, and row-level review notes.
 - Markdown links are disabled by default and replaced with a source-file notice.
 - `dry-run`, non-overwriting output behavior, and clear config errors.
 - Optional `.docx -> .md` converter.
-- Portable root-level and `config/` config templates for embedding the reader into other Markdown/TXT projects.
+- Portable root-level and `config/` config templates for embedding the reader into other Markdown/TXT/CSV projects.
 - `tests/html_quality_check.py` statically checks generated HTML page structure, chapter data, review hooks, navigation hooks, and safety boundaries.
 
 ## Safety Boundaries
@@ -110,4 +111,4 @@ Tests are also layered: the static page-quality check quickly verifies generated
 
 The current version is ready for a basic open-source release.
 
-It is not a large platform. It is a small and clear tool: turn a local Markdown/TXT folder into a continuous, filterable, reviewable browser reader, then export AI-friendly follow-up tasks.
+It is not a large platform. It is a small and clear tool: turn a local Markdown/TXT/CSV folder into a continuous, filterable, reviewable browser reader, then export AI-friendly follow-up tasks.

@@ -56,6 +56,14 @@ python tests/smoke_test.py
 python tests/html_quality_check.py
 ```
 
+- 如果本次改动涉及前端交互、审阅弹窗、筛选翻篇或 CSV 行批复，还应运行动态浏览器检查：
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m playwright install chromium
+python tests/browser_smoke_test.py
+```
+
 - GitHub Actions 会在 push、pull request 或手动触发时运行同一组 smoke test：
 
 ```text
@@ -66,6 +74,7 @@ python tests/html_quality_check.py
 
 - 配置解析。
 - Markdown/TXT 基础渲染。
+- CSV 解析、表格渲染、危险单元格转义和按行审阅锚点。
 - TXT 渲染不会激活 HTML、Markdown 链接或图片语法。
 - Markdown 链接禁用和本地化占位。
 - 常见 raster 图片 data URL 仍可显示。
@@ -94,6 +103,7 @@ python tests/html_quality_check.py
 - 审阅弹窗可以添加批复。
 - Edge 等浏览器出现选中文本迷你菜单时，浮动批复按钮仍可作为 `R` 快捷键的替代入口。
 - 审阅板可以编辑、删除、清空批复。
+- CSV demo 可横向滚动，搜索可命中单元格，行级批复导出显示“第 N 行”。
 - 复制和下载的 `review.md` 按文件分组。
 - 下载的 `review.md` 可以重新打包为普通 Markdown 阅读器。
 - 链接占位、图片显示、转换器行内格式在浏览器中看起来正常。
@@ -120,9 +130,10 @@ python tests/html_quality_check.py
 - 浏览器阅读器不写回源文件。
 - Markdown 链接不会生成可点击 `<a href=...>`。
 - TXT 内容只做转义展示，不激活 HTML 或 Markdown 语法。
+- CSV 单元格只作为表格文本显示，HTML 和公式样内容不会执行。
 - 生成 HTML 包含源文件内容，README 已提示敏感内容风险。
 - 可选转换器只读取源文档并写入转换结果。
-- README 和安全说明已提醒：不推荐打包来路不明的 Markdown/TXT，也不推荐对来路不明的 Office 文档运行转换器。
+- README 和安全说明已提醒：不推荐打包来路不明的 Markdown/TXT/CSV，也不推荐对来路不明的 Office 文档运行转换器。
 
 ## 当前已知限制
 
