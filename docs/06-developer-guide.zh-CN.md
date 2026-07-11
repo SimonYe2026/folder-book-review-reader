@@ -101,7 +101,7 @@ python -m playwright install chromium
 python tests\browser_smoke_test.py
 ```
 
-`browser_smoke_test.py` 会启动一个本地临时 HTTP 服务，并用真实 Chromium 点击公开 demo。它当前覆盖 `.csv` 筛选、CSV 行点击后按 `R`、审阅弹窗提交、筛选后翻篇和 `review.md` 预览生成。这个脚本是开发/发布检查工具，不是普通用户使用 reader 的运行依赖。
+`browser_smoke_test.py` 会启动本地临时 HTTP 服务，并用真实 Chromium 点击中英文公开 demo。它覆盖筛选与排序；标题、段落、列表项、引用块、代码块、Markdown 表格、转换后的 DOCX 表格、TXT 行和 CSV 行的批复与回跳；选中文本入口；无选区时按正文视觉中心定位的书签与批复；核心引用之外的附近上下文导出；审阅板编辑/复制/下载/删除/清空；localStorage 恢复；阅读偏好；左右栏和窄屏基本可用性。它还会构造坐标过期的旧本地批复，并验证按引用原文恢复定位。这个脚本是开发/发布检查工具，不是普通用户使用 reader 的运行依赖。
 
 涉及前端交互时，还应人工检查：
 

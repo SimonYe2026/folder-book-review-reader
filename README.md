@@ -20,6 +20,18 @@ This tool is useful when you have many local Markdown/TXT/CSV files from drafts,
 
 The reader itself does not call AI, edit source files, or merge AI results.
 
+## Review Handoff Packages
+
+When one review round involves dozens, or even ninety-plus, files, a zip archive or shared folder only delivers files. Reviewers still need to understand the directory, open files one by one, remember locations, and send fragmented feedback. `reader.html` turns that collection into one browser-ready review space: continuous reading, filtering, block-level review notes, and review-board follow-up all live in the same package.
+
+The exported `review.md` is more than a general comment list. It retains the file path, content-block position, original quote, action, target, and instruction, so a central owner can return each note to the right context for manual maintenance or an external AI workflow. The flow solves four practical problems: distribute a large file set; inspect it in one place; leave precise notes on specific locations; and return structured feedback.
+
+This is also the foundation for multi-party review collaboration: a coordinator packages separate `reader.html` files for different batches, roles, or viewing scopes; reviewers return their own `review.md` files; and a central owner or later AI process consolidates the feedback and decides on changes. The collaboration unit is a located review note, not shared source editing or synchronized browser state.
+
+Several reviewers or a small team can use this flow directly. As reviewer count, batches, and rounds grow, assignment scope, file naming, reviewer identity, deadlines, and centralized collection keep the handoff clear. These can be handled with a simple table and agreed conventions. The reader provides the packaging, location, and return layer; source files and final acceptance remain with the central owner.
+
+The builder needs Python to create a review package, but review participants do not. Review participants only read, make judgments, leave notes, and export `review.md`; packaging, intake/merging, AI handling, source edits, and final acceptance remain on the central side. They do not need AI knowledge, prompt-writing skill, Python, a code repository, source folders, or project dependencies. After receiving the file, they only need a modern browser to open `reader.html`. This lowers participation from operating a text-processing toolchain to opening a browser and contributing judgment.
+
 ## Requirements
 
 - Python 3.10 or newer.
@@ -28,6 +40,8 @@ The reader itself does not call AI, edit source files, or merge AI results.
 - No frontend framework.
 
 The core reader uses only the Python standard library.
+
+The Python requirement applies to builders only. Reviewers who receive a generated `reader.html` only need a modern browser.
 
 ## Quick Start
 
@@ -93,6 +107,8 @@ Both `source_dir` and `output` must stay inside `workspace_root`. This keeps the
 
 This repository uses the centralized layout because it keeps several demo and documentation configs in `config/`. For a small project with only one config, keeping `workspace.config.md` beside `build_reader.py` is still fine.
 
+Multiple configs are useful not only for different source folders, but also for preparing separate review packages for different batches or viewing scopes within one project. Each config can have its own `source_dir`, matching rules, and `output`. This lets a coordinator distribute separate review views by topic, role, round, or delivery scope. Sensitive content should never be packaged into an HTML file sent to a reviewer; hiding content in the browser is not access control.
+
 ## Expected Workflow
 
 ```text
@@ -117,6 +133,9 @@ collect or generate Markdown/TXT/CSV files
 - Supports configurable TXT paragraph mode.
 - Supports configurable UI labels.
 - Lets you select text or a paragraph and add review notes.
+- With no selected text, bookmarks and review notes target the content block nearest the visible reader center; CSV keeps its active-row priority.
+- Supports content-block bookmarks, including return navigation and removal from the bookmarks view.
+- Distinguishes precise selected/block review from viewport review, and exports bounded nearby context so later human or AI recheck does not have to infer an entire chapter from one anchor quote.
 - Saves review notes in `localStorage`.
 - Exports grouped `review.md`.
 
@@ -212,7 +231,7 @@ python -m playwright install chromium
 python tests/browser_smoke_test.py
 ```
 
-This dynamic script opens the public demo in Chromium and checks `.csv` filtering, CSV row review, review-dialog submission, filtered next navigation, and `review.md` preview generation. It is a development check, not a runtime dependency for ordinary reader use.
+This dynamic script opens the Chinese and English public demos in Chromium and checks filtering and sorting, CSV-row and ordinary-block review, no-selection visual-center targeting for bookmarks and review notes, nearby-context export, review-board editing/copying/downloading/deleting/clearing, review and bookmark return navigation, localStorage recovery, reading preferences, side panels, and basic narrow-screen behavior. It is a development check, not a runtime dependency for ordinary reader use.
 
 Refresh checked-in demo HTML files:
 
@@ -246,3 +265,4 @@ MIT License. See `LICENSE`.
 - `docs/04-user-manual.en.md` / `docs/04-user-manual.zh-CN.md`: user manual, shortcuts, review board, and export flow.
 - `docs/05-security-notes.en.md` / `docs/05-security-notes.zh-CN.md`: security model and unsafe input guidance.
 - `docs/06-developer-guide.en.md` / `docs/06-developer-guide.zh-CN.md`: code architecture and extension guidance.
+- `docs/07-review-handoff-workflow.en.md` / `docs/07-review-handoff-workflow.zh-CN.md`: review handoff, package scopes, and multi-party return workflow.

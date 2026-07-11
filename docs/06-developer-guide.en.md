@@ -101,7 +101,7 @@ python -m playwright install chromium
 python tests\browser_smoke_test.py
 ```
 
-`browser_smoke_test.py` starts a temporary local HTTP server and uses real Chromium clicks against the public demo. It currently covers `.csv` filtering, clicking a CSV row and pressing `R`, review-dialog submission, filtered next navigation, and `review.md` preview generation. This script is a development/release-check tool, not a runtime dependency for ordinary reader users.
+`browser_smoke_test.py` starts a temporary local HTTP server and uses real Chromium clicks against the Chinese and English public demos. It covers filtering and sorting; review and return navigation for headings, paragraphs, list items, blockquotes, code blocks, Markdown tables, converted DOCX tables, TXT lines, and CSV rows; selected-text entry; no-selection bookmarks and review notes that target the visual center of the reader; nearby-context export alongside the core quote; review-board editing/copying/downloading/deleting/clearing; localStorage recovery; reading preferences; side panels; and basic narrow-screen behavior. It also recreates an older local review with stale coordinates and verifies quote-based recovery. This script is a development/release-check tool, not a runtime dependency for ordinary reader users.
 
 For frontend interaction changes, also verify manually:
 

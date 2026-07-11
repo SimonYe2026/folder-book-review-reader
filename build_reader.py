@@ -45,6 +45,14 @@ DEFAULT_LABELS_ZH = {
     "width_full": "铺满",
     "reset_layout": "恢复默认",
     "toc": "目录",
+    "bookmarks": "书签",
+    "add_bookmark": "添加书签",
+    "remove_bookmark": "移除书签",
+    "delete_bookmark": "删除书签",
+    "clear_bookmarks": "清空书签",
+    "confirm_clear_bookmarks": "确认清空当前全部书签？",
+    "bookmark_shortcut_title": "添加或移除当前位置书签（快捷键 B）",
+    "empty_bookmarks": "还没有书签。阅读时可添加当前位置。",
     "review_panel": "审阅板",
     "previous": "上一篇",
     "next": "下一篇",
@@ -68,6 +76,18 @@ DEFAULT_LABELS_ZH = {
     "paragraph": "第 ? 段",
     "paragraph_prefix": "第",
     "paragraph_suffix": "段",
+    "context_blocks": "附近内容块",
+    "context_heading": "附近上下文",
+    "review_scope": "审阅范围",
+    "review_scope_selection": "选中文本（精确）",
+    "review_scope_block": "内容块（精确）",
+    "review_scope_viewport": "阅读视口（核心引用仅用于定位）",
+    "heading_prefix": "标题",
+    "heading_suffix": "",
+    "code_block_prefix": "代码块",
+    "code_block_suffix": "",
+    "table_prefix": "表格",
+    "table_suffix": "",
     "row_prefix": "第",
     "row_suffix": "行",
     "column_prefix": "第",
@@ -118,6 +138,14 @@ DEFAULT_LABELS_EN = {
     "width_full": "Full",
     "reset_layout": "Reset layout",
     "toc": "Contents",
+    "bookmarks": "Bookmarks",
+    "add_bookmark": "Add Bookmark",
+    "remove_bookmark": "Remove Bookmark",
+    "delete_bookmark": "Delete bookmark",
+    "clear_bookmarks": "Clear bookmarks",
+    "confirm_clear_bookmarks": "Clear all current bookmarks?",
+    "bookmark_shortcut_title": "Add or remove the current-position bookmark (shortcut B)",
+    "empty_bookmarks": "No bookmarks yet. Add one from the current reading position.",
     "review_panel": "Review Board",
     "previous": "Previous",
     "next": "Next",
@@ -141,6 +169,18 @@ DEFAULT_LABELS_EN = {
     "paragraph": "paragraph",
     "paragraph_prefix": "paragraph",
     "paragraph_suffix": "",
+    "context_blocks": "Nearby blocks",
+    "context_heading": "Nearby context",
+    "review_scope": "Review scope",
+    "review_scope_selection": "Selected text (precise)",
+    "review_scope_block": "Content block (precise)",
+    "review_scope_viewport": "Reading viewport (the quote is an anchor only)",
+    "heading_prefix": "heading",
+    "heading_suffix": "",
+    "code_block_prefix": "code block",
+    "code_block_suffix": "",
+    "table_prefix": "table",
+    "table_suffix": "",
     "row_prefix": "row",
     "row_suffix": "",
     "column_prefix": "column",
@@ -631,7 +671,12 @@ def split_table_row(line: str) -> list[str]:
     return [cell.strip() for cell in line.strip().strip("|").split("|")]
 
 
-def render_table(lines: list[str], table_index: int, labels: dict[str, str] | None = None) -> str:
+def render_table(
+    lines: list[str],
+    table_index: int,
+    labels: dict[str, str] | None = None,
+    block_index: int | None = None,
+) -> str:
     header = split_table_row(lines[0])
     rows = [split_table_row(line) for line in lines[2:]]
     columns = len(header)
@@ -643,8 +688,11 @@ def render_table(lines: list[str], table_index: int, labels: dict[str, str] | No
     for row in rows:
         padded = row + [""] * max(0, columns - len(row))
         body_html.append("<tr>" + "".join(f"<td>{table_cell(cell)}</td>" for cell in padded[:columns]) + "</tr>")
+    block_attributes = ""
+    if block_index is not None:
+        block_attributes = f' data-block-index="{block_index}" data-block-type="table"'
     return (
-        f'<div class="table-wrap" data-table-index="{table_index}">'
+        f'<div class="table-wrap" data-table-index="{table_index}"{block_attributes}>'
         f'<table><thead><tr>{head_html}</tr></thead><tbody>{"".join(body_html)}</tbody></table>'
         "</div>"
     )
@@ -655,6 +703,7 @@ def render_docx_table(
     table_index: int,
     labels: dict[str, str] | None = None,
     nested: bool = False,
+    block_index: int | None = None,
 ) -> str:
     if not isinstance(data, dict) or not isinstance(data.get("rows"), list):
         raise ValueError("docx-table data must contain a rows list")
@@ -678,7 +727,10 @@ def render_docx_table(
     table_html = f'<table{table_class}><tbody>{"".join(rows_html)}</tbody></table>'
     if nested:
         return table_html
-    return f'<div class="table-wrap docx-table-wrap" data-table-index="{table_index}">{table_html}</div>'
+    block_attributes = ""
+    if block_index is not None:
+        block_attributes = f' data-block-index="{block_index}" data-block-type="docx-table"'
+    return f'<div class="table-wrap docx-table-wrap" data-table-index="{table_index}"{block_attributes}>{table_html}</div>'
 
 
 def csv_cell(value: str) -> str:
@@ -728,17 +780,22 @@ def render_markdown_basic(text: str, labels: dict[str, str] | None = None) -> st
         if stripped.startswith("```"):
             if in_code:
                 if code_lang == "docx-table":
+                    idx = next_block_index()
                     try:
-                        blocks.append(render_docx_table(json.loads("\n".join(code_lines)), table_index, labels))
+                        blocks.append(render_docx_table(json.loads("\n".join(code_lines)), table_index, labels, block_index=idx))
                         table_index += 1
                     except (json.JSONDecodeError, TypeError, ValueError):
                         code = html.escape("\n".join(code_lines))
-                        blocks.append(f'<pre><code>{code}</code></pre>')
+                        blocks.append(
+                            f'<div class="code-block" data-block-index="{idx}" data-block-type="code-block">'
+                            f"<pre><code>{code}</code></pre></div>"
+                        )
                 else:
+                    idx = next_block_index()
                     language = html.escape(code_lang)
                     code = html.escape("\n".join(code_lines))
                     blocks.append(
-                        f'<div class="code-block" data-language="{language}">'
+                        f'<div class="code-block" data-block-index="{idx}" data-block-type="code-block" data-language="{language}">'
                         f'<div class="code-tools"><span>{language or "text"}</span><button type="button" class="copy-code">{copy_code_label}</button></div>'
                         f"<pre><code>{code}</code></pre></div>"
                     )
@@ -772,7 +829,7 @@ def render_markdown_basic(text: str, labels: dict[str, str] | None = None) -> st
             while index < len(lines) and "|" in lines[index].strip() and lines[index].strip():
                 table_lines.append(lines[index])
                 index += 1
-            blocks.append(render_table(table_lines, table_index, labels))
+            blocks.append(render_table(table_lines, table_index, labels, block_index=next_block_index()))
             table_index += 1
             continue
 
@@ -781,7 +838,11 @@ def render_markdown_basic(text: str, labels: dict[str, str] | None = None) -> st
             flush_paragraph()
             flush_list()
             level = len(heading.group(1))
-            blocks.append(f"<h{level}>{inline_markdown(heading.group(2), labels)}</h{level}>")
+            idx = next_block_index()
+            blocks.append(
+                f'<h{level} data-block-index="{idx}" data-block-type="heading">'
+                f"{inline_markdown(heading.group(2), labels)}</h{level}>"
+            )
             index += 1
             continue
 
@@ -807,10 +868,11 @@ def render_markdown_basic(text: str, labels: dict[str, str] | None = None) -> st
         index += 1
 
     if in_code:
+        idx = next_block_index()
         language = html.escape(code_lang)
         code = html.escape("\n".join(code_lines))
         blocks.append(
-            f'<div class="code-block" data-language="{language}">'
+            f'<div class="code-block" data-block-index="{idx}" data-block-type="code-block" data-language="{language}">'
             f'<div class="code-tools"><span>{language or "text"}</span><button type="button" class="copy-code">{copy_code_label}</button></div>'
             f"<pre><code>{code}</code></pre></div>"
         )
@@ -1077,6 +1139,17 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       min-height: 38px; border: 1px solid var(--line); background: var(--panel); border-radius: 6px;
       padding: 7px 10px; cursor: pointer;
     }}
+    .btn,
+    .toolbar,
+    .side-head,
+    .chapter-nav,
+    .fixed-nav,
+    .csv-summary,
+    .code-tools,
+    .review-item header,
+    .review-grid,
+    .dialog-actions,
+    .floating-review {{ user-select: none; -webkit-user-select: none; }}
     .btn:hover, .chapter-item:hover {{ border-color: var(--accent); }}
     .btn.primary {{ background: var(--accent); border-color: var(--accent); color: white; }}
     .btn.danger {{ border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); color: var(--danger); }}
@@ -1111,6 +1184,9 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
     .panel-resizer.right {{ margin-left: -4px; margin-right: -5px; }}
     body.resizing-panels {{ cursor: col-resize; user-select: none; }}
     .side-head {{ display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }}
+    .panel-tabs {{ display: flex; align-items: center; gap: 4px; min-width: 0; }}
+    .panel-tab {{ min-height: 30px; padding: 3px 8px; font-size: 12px; white-space: nowrap; }}
+    .panel-tab.active {{ border-color: var(--accent); background: var(--accent-soft); color: var(--text); }}
     .small-text {{ color: var(--muted); font-size: 12px; }}
     .chapter-list {{ display: grid; gap: 8px; }}
     .chapter-item {{
@@ -1120,6 +1196,14 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
     .chapter-item.active {{ border-color: var(--accent); background: var(--accent-soft); }}
     .chapter-name {{ display: block; font-weight: 800; line-height: 1.35; }}
     .chapter-meta {{ display: block; margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.4; word-break: break-all; }}
+    .bookmark-list {{ display: grid; gap: 8px; }}
+    .sidebar .chapter-list[hidden],
+    .sidebar .bookmark-list[hidden] {{ display: none !important; }}
+    .side-actions {{ display: flex; align-items: center; gap: 6px; min-width: 0; }}
+    .bookmark-item {{ display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: stretch; }}
+    .bookmark-open {{ width: 100%; text-align: left; border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 10px; cursor: pointer; }}
+    .bookmark-open:hover, .bookmark-open:focus {{ border-color: var(--accent); background: var(--accent-soft); outline: none; }}
+    .bookmark-delete {{ align-self: stretch; color: var(--danger); border-color: color-mix(in srgb, var(--danger) 42%, var(--line)); }}
     .reader-shell {{ min-width: 0; padding: 18px 18px 96px; overflow-anchor: none; }}
     .reader {{
       width: min(var(--reader-width), 100%); margin: 0 auto; background: var(--panel);
@@ -1134,6 +1218,7 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
     .content h1 {{ font-size: 2em; }}
     .content h2 {{ font-size: 1.5em; }}
     .content h3 {{ font-size: 1.25em; }}
+    .content h1, .content h2, .content h3, .content h4, .content h5, .content h6 {{ position: relative; }}
     .content p, .content blockquote, .content li {{ position: relative; }}
     .content p {{ margin: 0 0 1em; }}
     .content blockquote {{
@@ -1153,11 +1238,11 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
     }}
     .content mark {{ background: #ffe58a; color: #241f18; padding: 0 .08em; }}
     .content .docx-small {{ font-size: .78em; color: var(--muted); }}
-    .code-block {{ margin: 1em 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--panel-2); }}
+    .code-block {{ position: relative; margin: 1em 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--panel-2); }}
     .code-tools {{ display: flex; justify-content: space-between; gap: 10px; padding: 7px 10px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; }}
     .code-block pre {{ margin: 0; overflow: auto; padding: 14px; }}
     code, pre {{ font-family: Consolas, "Cascadia Mono", monospace; }}
-    .table-wrap {{ overflow: auto; margin: 1em 0; border: 1px solid var(--line); border-radius: 6px; }}
+    .table-wrap {{ position: relative; overflow: auto; margin: 1em 0; border: 1px solid var(--line); border-radius: 6px; }}
     table {{ width: 100%; border-collapse: collapse; min-width: 520px; background: var(--panel); }}
     .csv-summary {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: .9em; margin: .25em 0 .5em; }}
     .csv-current-row-review {{ min-height: 30px; padding: 3px 8px; font-size: 12px; white-space: nowrap; }}
@@ -1173,6 +1258,9 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       opacity: 0; position: absolute; right: 0; transform: translateX(100%); margin-right: -8px;
       border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 2px 7px; font-size: 12px; cursor: pointer;
     }}
+    .block-review-contained {{ right: 8px; transform: none; margin-right: 0; z-index: 2; }}
+    .code-block > .block-review-contained {{ top: 7px; right: 78px; }}
+    .table-wrap > .block-review-contained {{ top: 7px; }}
     [data-block-index]:hover .block-review {{ opacity: 1; }}
     .fixed-nav {{
       position: fixed; left: var(--fixed-left-offset); right: var(--fixed-right-offset); bottom: 0; z-index: 4;
@@ -1180,6 +1268,8 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       padding: 10px; background: color-mix(in srgb, var(--panel) 94%, transparent);
       border-top: 1px solid var(--line); backdrop-filter: blur(10px);
     }}
+    .fixed-nav #positionText {{ min-width: 0; text-align: center; }}
+    .bookmark-current[aria-pressed="true"] {{ border-color: var(--accent); background: var(--accent-soft); }}
     .floating-review {{
       position: fixed; right: calc(var(--fixed-right-offset) + 20px); bottom: 80px; z-index: 10;
       width: 44px; height: 44px; border-radius: 50%;
@@ -1199,10 +1289,26 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
     }}
     .review-list {{ display: grid; gap: 10px; margin: 10px 0; }}
     .review-item {{ border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: var(--panel); overflow-wrap: anywhere; word-break: break-word; }}
+    .review-item[data-review-id] {{ cursor: pointer; }}
+    .review-item[data-review-id]:hover,
+    .review-item[data-review-id]:focus {{ border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); outline: none; }}
     .review-item header {{ display: flex; justify-content: space-between; gap: 8px; align-items: start; margin-bottom: 8px; }}
     .review-item textarea {{ width: 100%; min-height: 72px; resize: vertical; margin-top: 8px; }}
+    .review-context {{ margin-top: 8px; }}
+    .review-context-heading {{ color: var(--muted); font-size: 12px; margin-bottom: 4px; }}
+    .review-context .quote-box {{ max-height: 120px; }}
     .review-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }}
     .review-preview {{ width: 100%; min-height: 220px; margin-top: 10px; resize: vertical; font-family: Consolas, monospace; font-size: 12px; }}
+    .review-target-highlight {{ animation: review-target-pulse 1.6s ease-out; }}
+    .csv-table tr.review-target-highlight td {{ animation: review-target-cell-pulse 1.6s ease-out; }}
+    @keyframes review-target-pulse {{
+      0%, 70% {{ background: #fff3bf; box-shadow: 0 0 0 4px rgba(245, 158, 11, .32); }}
+      100% {{ background: transparent; box-shadow: none; }}
+    }}
+    @keyframes review-target-cell-pulse {{
+      0%, 70% {{ background: #fff3bf; }}
+      100% {{ background: transparent; }}
+    }}
     .empty {{ padding: 14px; color: var(--muted); text-align: center; border: 1px dashed var(--line); border-radius: 8px; }}
     dialog {{ width: min(680px, calc(100vw - 32px)); border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); box-shadow: var(--shadow); resize: both; overflow: auto; min-width: 320px; min-height: 240px; max-width: 92vw; max-height: 92vh; }}
     dialog::backdrop {{ background: rgba(0, 0, 0, .35); }}
@@ -1238,7 +1344,8 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       .review-panel {{ grid-column: 1; }}
       .layout.left-collapsed:not(.right-collapsed) .review-panel {{ position: static; height: auto; grid-column: 1; border-left: 0; border-top: 1px solid var(--line); }}
       .layout.left-collapsed:not(.right-collapsed) .panel-resizer.right {{ display: none; }}
-      .fixed-nav {{ left: 0; right: 0; }}
+      .fixed-nav {{ left: 0; right: 0; gap: 8px; padding: 8px; }}
+      .fixed-nav #positionText {{ display: none; }}
       .block-review {{ opacity: 1; position: static; transform: none; margin: 4px 0 0 0; }}
     }}
   </style>
@@ -1278,10 +1385,17 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
     <main class="layout" id="layoutRoot">
       <aside class="sidebar">
         <div class="side-head">
-          <strong>{label('toc')}</strong>
-          <span class="small-text" id="chapterCount"></span>
+          <div class="panel-tabs" role="tablist">
+            <button class="btn panel-tab" id="tocTabButton" type="button" role="tab">{label('toc')}</button>
+            <button class="btn panel-tab" id="bookmarkTabButton" type="button" role="tab">{label('bookmarks')}</button>
+          </div>
+          <div class="side-actions">
+            <span class="small-text" id="chapterCount"></span>
+            <button class="btn" id="clearBookmarksButton" type="button" hidden>{label('clear_bookmarks')}</button>
+          </div>
         </div>
         <div class="chapter-list" id="chapterList"></div>
+        <div class="bookmark-list" id="bookmarkList" hidden></div>
       </aside>
       <div class="panel-resizer left" id="leftPanelResizer" role="separator" aria-orientation="vertical" title="{label('left_resizer_title')}"></div>
       <section class="reader-shell">
@@ -1323,6 +1437,7 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
     <nav class="fixed-nav">
       <button class="btn" id="fixedPrevButton" type="button">{label('previous')}</button>
       <span class="small-text" id="positionText"></span>
+      <button class="btn bookmark-current" id="bookmarkCurrentButton" type="button" title="{label('bookmark_shortcut_title')}">{label('add_bookmark')}</button>
       <button class="btn" id="fixedNextButton" type="button">{label('next')}</button>
     </nav>
   </div>
@@ -1356,6 +1471,7 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
     const APP_CONFIG = {config_payload};
     const storageKey = "folder-review-reader:" + BOOK_DATA.title;
     const reviewStorageKey = storageKey + ":reviews";
+    const bookmarkStorageKey = storageKey + ":bookmarks";
     const display = APP_CONFIG.display || {{}};
     const reviewConfig = APP_CONFIG.review || {{}};
     const labels = APP_CONFIG.labels || {{}};
@@ -1373,10 +1489,13 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       query: "",
       ext: "all",
       reversed: false,
+      leftPanelView: "toc",
       ...layoutDefaults,
       reviews: [],
+      bookmarks: [],
       pendingReview: null,
-      lastSelection: null
+      lastSelection: null,
+      activeBlock: null
     }};
 
     const els = {{
@@ -1389,6 +1508,7 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       clearFilterButton: document.getElementById("clearFilterButton"),
       sortButton: document.getElementById("sortButton"),
       toggleTocButton: document.getElementById("toggleTocButton"),
+      bookmarkCurrentButton: document.getElementById("bookmarkCurrentButton"),
       toggleReviewPanelButton: document.getElementById("toggleReviewPanelButton"),
       smallerButton: document.getElementById("smallerButton"),
       largerButton: document.getElementById("largerButton"),
@@ -1397,6 +1517,10 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       themeButton: document.getElementById("themeButton"),
       chapterCount: document.getElementById("chapterCount"),
       chapterList: document.getElementById("chapterList"),
+      tocTabButton: document.getElementById("tocTabButton"),
+      bookmarkTabButton: document.getElementById("bookmarkTabButton"),
+      bookmarkList: document.getElementById("bookmarkList"),
+      clearBookmarksButton: document.getElementById("clearBookmarksButton"),
       chapterTitle: document.getElementById("chapterTitle"),
       sourceLine: document.getElementById("sourceLine"),
       content: document.getElementById("content"),
@@ -1406,6 +1530,7 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       bottomNextButton: document.getElementById("bottomNextButton"),
       fixedPrevButton: document.getElementById("fixedPrevButton"),
       fixedNextButton: document.getElementById("fixedNextButton"),
+      fixedNav: document.querySelector(".fixed-nav"),
       positionText: document.getElementById("positionText"),
       leftPanelResizer: document.getElementById("leftPanelResizer"),
       rightPanelResizer: document.getElementById("rightPanelResizer"),
@@ -1467,6 +1592,11 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       }} catch (error) {{
         state.reviews = [];
       }}
+      try {{
+        state.bookmarks = JSON.parse(localStorage.getItem(bookmarkStorageKey) || "[]");
+      }} catch (error) {{
+        state.bookmarks = [];
+      }}
       if (!BOOK_DATA.chapters.some(chapter => chapter.id === state.currentId)) {{
         state.currentId = BOOK_DATA.chapters[0]?.id || null;
       }}
@@ -1483,10 +1613,12 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
         rightPanelWidth: state.rightPanelWidth,
         leftCollapsed: state.leftCollapsed,
         rightCollapsed: state.rightCollapsed,
+        leftPanelView: state.leftPanelView,
         query: state.query,
         ext: state.ext
       }}));
       localStorage.setItem(reviewStorageKey, JSON.stringify(state.reviews));
+      localStorage.setItem(bookmarkStorageKey, JSON.stringify(state.bookmarks));
     }}
 
     function orderedChapters() {{
@@ -1598,10 +1730,21 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
     function renderList() {{
       const chapters = visibleChapters();
       ensureCurrentVisible(chapters);
-      els.chapterCount.textContent = `${{chapters.length}} / ${{BOOK_DATA.chapters.length}}`;
+      const showBookmarks = state.leftPanelView === "bookmarks";
+      els.chapterList.hidden = showBookmarks;
+      els.bookmarkList.hidden = !showBookmarks;
+      els.tocTabButton.classList.toggle("active", !showBookmarks);
+      els.bookmarkTabButton.classList.toggle("active", showBookmarks);
+      els.tocTabButton.setAttribute("aria-selected", String(!showBookmarks));
+      els.bookmarkTabButton.setAttribute("aria-selected", String(showBookmarks));
+      els.clearBookmarksButton.hidden = !showBookmarks || !state.bookmarks.length;
+      els.chapterCount.textContent = showBookmarks
+        ? `${{state.bookmarks.length}} ${{label("items")}}`
+        : `${{chapters.length}} / ${{BOOK_DATA.chapters.length}}`;
       els.chapterList.innerHTML = "";
       if (!chapters.length) {{
         els.chapterList.innerHTML = `<div class="empty">${{escapeHtml(label("no_files"))}}</div>`;
+        renderBookmarks();
         return;
       }}
       for (const [index, chapter] of chapters.entries()) {{
@@ -1616,6 +1759,89 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
         button.addEventListener("click", () => setCurrent(chapter.id));
         els.chapterList.appendChild(button);
       }}
+      renderBookmarks();
+    }}
+
+    function currentBookmarkTarget() {{
+      const chapter = currentChapter();
+      const block = state.activeBlock && els.content.contains(state.activeBlock)
+        ? state.activeBlock
+        : nearestReviewBlock();
+      if (!chapter || !block) return null;
+      return {{
+        chapter_id: chapter.id,
+        file_name: chapter.file_name,
+        relative_path: chapter.relative_path,
+        title: chapter.title,
+        block_index: block.dataset.blockIndex || "",
+        block_type: block.dataset.blockType || "selection",
+        position_text: "",
+        quote: blockQuoteText(block)
+      }};
+    }}
+
+    function matchingBookmark(target) {{
+      if (!target) return null;
+      return state.bookmarks.find(bookmark => (
+        bookmark.chapter_id === target.chapter_id
+        && bookmark.block_index === target.block_index
+        && bookmark.block_type === target.block_type
+      )) || null;
+    }}
+
+    function toggleCurrentBookmark() {{
+      const target = currentBookmarkTarget();
+      if (!target) return;
+      const existing = matchingBookmark(target);
+      if (existing) {{
+        state.bookmarks = state.bookmarks.filter(bookmark => bookmark.id !== existing.id);
+      }} else {{
+        state.bookmarks.push({{ id: "bookmark-" + Date.now(), ...target }});
+      }}
+      saveState();
+      renderList();
+    }}
+
+    function renderBookmarks() {{
+      renderBookmarkCurrentButton();
+      els.bookmarkList.innerHTML = "";
+      if (!state.bookmarks.length) {{
+        els.bookmarkList.innerHTML = `<div class="empty">${{escapeHtml(label("empty_bookmarks"))}}</div>`;
+        return;
+      }}
+      state.bookmarks.forEach((bookmark, index) => {{
+        const item = document.createElement("div");
+        item.className = "bookmark-item";
+        const openButton = document.createElement("button");
+        openButton.type = "button";
+        openButton.className = "bookmark-open";
+        openButton.dataset.bookmarkId = bookmark.id;
+        openButton.innerHTML = `
+          <span class="chapter-name">${{index + 1}}. ${{escapeHtml(bookmark.title)}}</span>
+          <span class="chapter-meta">${{escapeHtml(bookmark.relative_path)}} · ${{escapeHtml(reviewPositionText(bookmark))}}</span>
+        `;
+        openButton.addEventListener("click", () => navigateToReview(bookmark));
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "btn bookmark-delete";
+        deleteButton.dataset.bookmarkId = bookmark.id;
+        deleteButton.textContent = label("delete");
+        deleteButton.title = label("delete_bookmark");
+        deleteButton.addEventListener("click", () => {{
+          state.bookmarks = state.bookmarks.filter(item => item.id !== bookmark.id);
+          saveState();
+          renderList();
+        }});
+        item.append(openButton, deleteButton);
+        els.bookmarkList.appendChild(item);
+      }});
+    }}
+
+    function renderBookmarkCurrentButton() {{
+      const current = currentBookmarkTarget();
+      const activeBookmark = matchingBookmark(current);
+      els.bookmarkCurrentButton.textContent = activeBookmark ? label("remove_bookmark") : label("add_bookmark");
+      els.bookmarkCurrentButton.setAttribute("aria-pressed", String(!!activeBookmark));
     }}
 
     function addBlockReviewButtons() {{
@@ -1624,11 +1850,20 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
         if (block.querySelector(":scope > .block-review")) return;
         const button = document.createElement("button");
         button.type = "button";
-        button.className = "block-review";
+        button.className = ["code-block", "table", "docx-table"].includes(block.dataset.blockType)
+          ? "block-review block-review-contained"
+          : "block-review";
         button.textContent = label("review");
         button.addEventListener("click", event => {{
           event.stopPropagation();
+          state.activeBlock = block;
+          renderBookmarks();
           openReviewDialog(block);
+        }});
+        block.addEventListener("click", event => {{
+          if (event.target.closest(".block-review")) return;
+          state.activeBlock = block;
+          renderBookmarks();
         }});
         block.appendChild(button);
       }});
@@ -1645,7 +1880,11 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
           setActive(rows[0]);
         }}
         rows.forEach(row => {{
-          row.addEventListener("click", () => setActive(row));
+          row.addEventListener("click", () => {{
+            setActive(row);
+            state.activeBlock = row;
+            renderBookmarks();
+          }});
         }});
         reviewButton?.addEventListener("click", event => {{
           event.stopPropagation();
@@ -1663,7 +1902,78 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       if (review.block_type === "csv-row") {{
         return `${{label("row_prefix")}} ${{review.block_index || "?"}} ${{label("row_suffix")}}`.trim();
       }}
+      if (review.block_type === "heading") {{
+        return `${{label("heading_prefix")}} ${{review.block_index || "?"}} ${{label("heading_suffix")}}`.trim();
+      }}
+      if (review.block_type === "code-block") {{
+        return `${{label("code_block_prefix")}} ${{review.block_index || "?"}} ${{label("code_block_suffix")}}`.trim();
+      }}
+      if (review.block_type === "table" || review.block_type === "docx-table") {{
+        return `${{label("table_prefix")}} ${{review.block_index || "?"}} ${{label("table_suffix")}}`.trim();
+      }}
       return `${{label("paragraph_prefix")}} ${{review.block_index || "?"}} ${{label("paragraph_suffix")}}`.trim();
+    }}
+
+    function reviewContextForBlock(block, scope) {{
+      const blocks = Array.from(els.content.querySelectorAll("[data-block-index]"));
+      const currentIndex = blocks.indexOf(block);
+      if (currentIndex < 0) return {{ start: "", end: "", excerpt: "" }};
+      const toolbarBottom = Math.max(0, els.toolbar.getBoundingClientRect().bottom);
+      const fixedNavTop = els.fixedNav?.getBoundingClientRect().top ?? window.innerHeight;
+      const visibleTop = Math.min(toolbarBottom, window.innerHeight);
+      const visibleBottom = Math.max(visibleTop + 1, Math.min(window.innerHeight, fixedNavTop));
+      const visibleBlocks = blocks.filter(item => {{
+        const rect = item.getBoundingClientRect();
+        return rect.bottom > visibleTop && rect.top < visibleBottom;
+      }});
+      const candidateBlocks = scope === "viewport" && visibleBlocks.length
+        ? visibleBlocks
+        : blocks.slice(Math.max(0, currentIndex - 1), Math.min(blocks.length, currentIndex + 2));
+      const anchorIndex = candidateBlocks.indexOf(block);
+      const orderedIndexes = [];
+      for (let offset = 0; orderedIndexes.length < candidateBlocks.length; offset += 1) {{
+        const before = anchorIndex - offset;
+        const after = anchorIndex + offset;
+        if (before >= 0) orderedIndexes.push(before);
+        if (offset && after < candidateBlocks.length) orderedIndexes.push(after);
+      }}
+      let excerptLength = 0;
+      const entries = [];
+      orderedIndexes.forEach(index => {{
+        if (excerptLength >= 2400) return;
+        const item = candidateBlocks[index];
+        const text = blockQuoteText(item);
+        if (!text) return;
+        const remaining = Math.max(0, 2400 - excerptLength);
+        const limit = Math.min(700, remaining);
+        const shortened = text.length > limit
+          ? `${{text.slice(0, limit)}}...`
+          : text;
+        excerptLength += shortened.length;
+        entries.push({{ item, text: `[${{item.dataset.blockIndex}}] ${{shortened}}` }});
+      }});
+      entries.sort((left, right) => candidateBlocks.indexOf(left.item) - candidateBlocks.indexOf(right.item));
+      const excerpt = entries.map(entry => entry.text).join("\\n\\n");
+      return {{
+        start: entries[0]?.item.dataset.blockIndex || "",
+        end: entries[entries.length - 1]?.item.dataset.blockIndex || "",
+        excerpt
+      }};
+    }}
+
+    function reviewContextText(review) {{
+      const start = review.context_start_index;
+      const end = review.context_end_index;
+      if (!start || !end) return "";
+      return start === end
+        ? `${{label("context_blocks")}} ${{start}}`
+        : `${{label("context_blocks")}} ${{start}}-${{end}}`;
+    }}
+
+    function reviewScopeText(review) {{
+      if (review.review_scope === "selection") return label("review_scope_selection");
+      if (review.review_scope === "viewport") return label("review_scope_viewport");
+      return label("review_scope_block");
     }}
 
     function attachCodeCopy() {{
@@ -1691,6 +2001,7 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       const visibleIndex = currentVisibleIndex(chapters);
       if (els.content.dataset.chapterId !== chapter.id) {{
         state.lastSelection = null;
+        state.activeBlock = null;
         els.content.dataset.chapterId = chapter.id;
       }}
       els.sourceLine.textContent = [
@@ -1706,6 +2017,7 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       addBlockReviewButtons();
       attachCsvTables();
       attachCodeCopy();
+      renderBookmarks();
       const prevDisabled = visibleIndex <= 0;
       const nextDisabled = visibleIndex === -1 || visibleIndex >= chapters.length - 1;
       [els.topPrevButton, els.bottomPrevButton, els.fixedPrevButton].forEach(button => button.disabled = prevDisabled);
@@ -1796,6 +2108,7 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
         }}
       }}
       const csvMeta = csvSelectionMeta(selection);
+      state.activeBlock = csvMeta?.block || block || state.activeBlock;
       state.lastSelection = {{
         quote: selected,
         block: csvMeta?.block || block,
@@ -1889,8 +2202,35 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       }}
       const activeCsvRow = els.content.querySelector(".csv-chapter .csv-row-active");
       if (activeCsvRow) return activeCsvRow;
+      const centeredBlock = nearestVisualCenterBlock();
+      if (centeredBlock) return centeredBlock;
       if (state.lastSelection?.block) return state.lastSelection.block;
+      if (state.activeBlock && els.content.contains(state.activeBlock)) return state.activeBlock;
       return els.content.querySelector("[data-block-index]");
+    }}
+
+    function nearestVisualCenterBlock() {{
+      const blocks = Array.from(els.content.querySelectorAll("[data-block-index]"));
+      if (!blocks.length) return null;
+      const toolbarBottom = Math.max(0, els.toolbar.getBoundingClientRect().bottom);
+      const fixedNavTop = els.fixedNav?.getBoundingClientRect().top ?? window.innerHeight;
+      const visibleTop = Math.min(toolbarBottom, window.innerHeight);
+      const visibleBottom = Math.max(visibleTop + 1, Math.min(window.innerHeight, fixedNavTop));
+      const center = (visibleTop + visibleBottom) / 2;
+      let nearest = null;
+      let nearestDistance = Infinity;
+      blocks.forEach(candidate => {{
+        const rect = candidate.getBoundingClientRect();
+        if (rect.bottom <= visibleTop || rect.top >= visibleBottom) return;
+        const distance = rect.top <= center && rect.bottom >= center
+          ? 0
+          : Math.min(Math.abs(rect.top - center), Math.abs(rect.bottom - center));
+        if (distance < nearestDistance) {{
+          nearest = candidate;
+          nearestDistance = distance;
+        }}
+      }});
+      return nearest;
     }}
 
     function blockQuoteText(block) {{
@@ -1900,6 +2240,9 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
           .map(cell => cell.textContent.trim())
           .join("\\t")
           .trim();
+      }}
+      if (block.dataset?.blockType === "code-block") {{
+        return block.querySelector("pre > code")?.textContent.trim() || "";
       }}
       const clone = block.cloneNode(true);
       clone.querySelectorAll(".block-review").forEach(button => button.remove());
@@ -1917,16 +2260,19 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       if (reviewConfig.enabled === false) return;
       const chapter = currentChapter();
       if (!chapter) return;
-      const selected = selectionInsideContent();
+      // A direct block button must not inherit an earlier text selection.
+      const selected = block ? "" : selectionInsideContent();
       if (selected) {{
         captureSelection();
       }}
-      const cached = state.lastSelection;
+      const cached = selected ? state.lastSelection : null;
       const targetBlock = block || nearestReviewBlock(block);
       const quote = selected
         || (cached?.quote)
         || blockQuoteText(targetBlock);
       if (!quote) return;
+      const reviewScope = selected ? "selection" : (block ? "block" : "viewport");
+      const context = reviewContextForBlock(targetBlock, reviewScope);
       state.pendingReview = {{
         chapter_id: chapter.id,
         file_name: chapter.file_name,
@@ -1935,6 +2281,10 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
         block_index: cached?.block_index || targetBlock?.dataset?.blockIndex || "",
         block_type: cached?.block_type || targetBlock?.dataset?.blockType || "selection",
         position_text: cached?.position_text || "",
+        review_scope: reviewScope,
+        context_start_index: context.start,
+        context_end_index: context.end,
+        context_excerpt: context.excerpt,
         quote
       }};
       state.lastSelection = null;
@@ -1999,12 +2349,19 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
           lines.push(`### ${{label("review_label")}} ${{index + 1}}: ${{review.action}} -> ${{review.target}}`);
           lines.push("");
           lines.push(`- ${{label("position_label")}}: ${{reviewPositionText(review)}}`);
+          lines.push(`- ${{label("review_scope")}}: ${{reviewScopeText(review)}}`);
           lines.push(`- ${{label("time_label")}}: ${{review.created_at}}`);
           lines.push("");
           lines.push(`#### ${{label("quote_heading")}}`);
           lines.push("");
           lines.push(markdownQuote(review.quote));
           lines.push("");
+          if (review.context_excerpt) {{
+            lines.push(`#### ${{label("context_heading")}} (${{reviewContextText(review)}})`);
+            lines.push("");
+            lines.push(markdownQuote(review.context_excerpt));
+            lines.push("");
+          }}
           lines.push(`#### ${{label("instruction_heading")}}`);
           lines.push("");
           lines.push(review.comment || `(${{label("empty_value")}})`);
@@ -2027,6 +2384,82 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       return `review_${{timestampForFileName()}}.md`;
     }}
 
+    function firstBlockIndex(value) {{
+      const match = String(value || "").match(/\\d+/);
+      return match ? match[0] : "";
+    }}
+
+    function currentFiltersHideChapter(chapterId) {{
+      return !visibleChapters().some(chapter => chapter.id === chapterId);
+    }}
+
+    function findReviewTargetBlock(review) {{
+      const blockIndex = firstBlockIndex(review.block_index);
+      const blockType = String(review.block_type || "");
+      let indexedBlock = null;
+      if (review.block_type === "csv-row" || review.block_type === "csv-cell-selection") {{
+        indexedBlock = els.content.querySelector(`[data-block-type="csv-row"][data-block-index="${{blockIndex}}"]`);
+      }}
+      if (!indexedBlock && blockIndex && blockType && blockType !== "selection") {{
+        indexedBlock = els.content.querySelector(`[data-block-type="${{blockType}}"]` + `[data-block-index="${{blockIndex}}"]`);
+      }}
+
+      // Block indexes are fast but can shift after source edits. Confirm them against
+      // the saved quote before accepting an older local review's target.
+      const quote = String(review.quote || "").replace(/\\s+/g, " ").trim();
+      if (quote) {{
+        const quoteMatches = block => {{
+          const text = blockQuoteText(block).replace(/\\s+/g, " ").trim();
+          return text === quote || text.includes(quote);
+        }};
+        if (indexedBlock && quoteMatches(indexedBlock)) return indexedBlock;
+        const quoteMatch = Array.from(els.content.querySelectorAll("[data-block-index]")).find(block => {{
+          return quoteMatches(block);
+        }});
+        if (quoteMatch) return quoteMatch;
+      }}
+      if (indexedBlock) return indexedBlock;
+      if (blockIndex && (!blockType || blockType === "selection")) {{
+        return els.content.querySelector(`[data-block-index="${{blockIndex}}"]`);
+      }}
+      return null;
+    }}
+
+    function highlightReviewTarget(block) {{
+      if (!block) return;
+      block.classList.remove("review-target-highlight");
+      void block.offsetWidth;
+      block.classList.add("review-target-highlight");
+      state.activeBlock = block;
+      if (block.dataset.blockType === "csv-row") {{
+        els.content.querySelectorAll(".csv-row-active").forEach(row => row.classList.remove("csv-row-active"));
+        block.classList.add("csv-row-active");
+      }}
+      renderBookmarks();
+      block.scrollIntoView({{ block: "center", inline: "nearest", behavior: "auto" }});
+      setTimeout(() => block.classList.remove("review-target-highlight"), 1700);
+    }}
+
+    function navigateToReview(review) {{
+      const chapter = BOOK_DATA.chapters.find(item => item.id === review.chapter_id);
+      if (!chapter) return;
+      if (currentFiltersHideChapter(chapter.id)) {{
+        state.query = "";
+        state.ext = "all";
+      }}
+      state.currentId = chapter.id;
+      saveState();
+      render();
+      requestAnimationFrame(() => requestAnimationFrame(() => {{
+        const target = findReviewTargetBlock(review);
+        if (target) {{
+          highlightReviewTarget(target);
+        }} else {{
+          scrollReaderToTop();
+        }}
+      }}));
+    }}
+
     function renderReviews() {{
       els.reviewCount.textContent = `${{state.reviews.length}} ${{label("items")}}`;
       els.reviewList.innerHTML = "";
@@ -2036,15 +2469,20 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
         state.reviews.forEach((review, index) => {{
           const item = document.createElement("section");
           item.className = "review-item";
+          item.tabIndex = 0;
+          item.dataset.reviewId = review.id;
           item.innerHTML = `
             <header>
               <div>
                 <strong>#${{index + 1}} ${{escapeHtml(review.action)}} -> ${{escapeHtml(review.target)}}</strong>
                 <div class="small-text">${{escapeHtml(review.relative_path)}} · ${{escapeHtml(reviewPositionText(review))}}</div>
+                <div class="small-text">${{escapeHtml(label("review_scope"))}}: ${{escapeHtml(reviewScopeText(review))}}</div>
+                ${{reviewContextText(review) ? `<div class="small-text">${{escapeHtml(reviewContextText(review))}}</div>` : ""}}
               </div>
               <button class="btn danger" type="button" data-delete-review="${{review.id}}">${{escapeHtml(label("delete"))}}</button>
             </header>
             <div class="quote-box">${{escapeHtml(review.quote)}}</div>
+            ${{review.context_excerpt ? `<div class="review-context"><div class="review-context-heading">${{escapeHtml(label("context_heading"))}}</div><div class="quote-box">${{escapeHtml(review.context_excerpt)}}</div></div>` : ""}}
             <div class="review-grid">
               <select class="select" data-edit-action="${{review.id}}"></select>
               <select class="select" data-edit-target="${{review.id}}"></select>
@@ -2079,8 +2517,10 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
 
     async function copyText(text) {{
       if (navigator.clipboard?.writeText) {{
-        await navigator.clipboard.writeText(text);
-        return;
+        try {{
+          await navigator.clipboard.writeText(text);
+          return;
+        }} catch (error) {{}}
       }}
       els.reviewPreview.value = text;
       els.reviewPreview.select();
@@ -2125,6 +2565,22 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
     }});
     els.toggleTocButton.addEventListener("click", () => {{
       state.leftCollapsed = !state.leftCollapsed;
+      render();
+    }});
+    els.bookmarkCurrentButton.addEventListener("click", toggleCurrentBookmark);
+    els.clearBookmarksButton.addEventListener("click", () => {{
+      if (state.bookmarks.length && confirm(label("confirm_clear_bookmarks"))) {{
+        state.bookmarks = [];
+        saveState();
+        renderList();
+      }}
+    }});
+    els.tocTabButton.addEventListener("click", () => {{
+      state.leftPanelView = "toc";
+      render();
+    }});
+    els.bookmarkTabButton.addEventListener("click", () => {{
+      state.leftPanelView = "bookmarks";
       render();
     }});
     els.toggleReviewPanelButton.addEventListener("click", () => {{
@@ -2177,7 +2633,20 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       if (deleteId) {{
         state.reviews = state.reviews.filter(review => review.id !== deleteId);
         renderReviews();
+        return;
       }}
+      if (event.target?.closest?.("button, select, textarea, input, a")) return;
+      const reviewItem = event.target?.closest?.("[data-review-id]");
+      const review = state.reviews.find(item => item.id === reviewItem?.dataset?.reviewId);
+      if (review) navigateToReview(review);
+    }});
+    els.reviewList.addEventListener("keydown", event => {{
+      if (event.key !== "Enter" && event.key !== " ") return;
+      if (event.target?.closest?.("button, select, textarea, input, a")) return;
+      const review = state.reviews.find(item => item.id === event.target?.dataset?.reviewId);
+      if (!review) return;
+      event.preventDefault();
+      navigateToReview(review);
     }});
     els.reviewList.addEventListener("change", event => {{
       if (event.target?.dataset?.editAction) updateReview(event.target.dataset.editAction, {{ action: event.target.value }});
@@ -2202,6 +2671,11 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       if (event.target && ["INPUT", "SELECT", "TEXTAREA"].includes(event.target.tagName)) return;
       if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") move(-1);
       if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") move(1);
+      if (event.key.toLowerCase() === "b" && !event.ctrlKey && !event.metaKey) {{
+        event.preventDefault();
+        toggleCurrentBookmark();
+        return;
+      }}
       const shortcut = (reviewConfig.shortcut || "r").toLowerCase();
       if (event.key.toLowerCase() === shortcut && !event.ctrlKey && !event.metaKey) {{
         event.preventDefault();
@@ -2213,6 +2687,15 @@ def html_document(data: dict[str, Any], app_config: dict[str, Any]) -> str:
       applyPreferences();
       saveState();
     }});
+    let bookmarkButtonFrame = 0;
+    window.addEventListener("scroll", () => {{
+      state.activeBlock = null;
+      if (bookmarkButtonFrame) return;
+      bookmarkButtonFrame = requestAnimationFrame(() => {{
+        bookmarkButtonFrame = 0;
+        renderBookmarkCurrentButton();
+      }});
+    }}, {{ passive: true }});
 
     loadState();
     syncToolbarHeight();

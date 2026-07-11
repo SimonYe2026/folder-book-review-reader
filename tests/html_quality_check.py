@@ -39,6 +39,8 @@ PRIVATE_SNIPPETS = [
 REQUIRED_ELEMENT_IDS = [
     "bookTitle",
     "toggleTocButton",
+    "bookmarkCurrentButton",
+    "clearBookmarksButton",
     "toggleReviewPanelButton",
     "searchInput",
     "extFilter",
@@ -50,6 +52,9 @@ REQUIRED_ELEMENT_IDS = [
     "resetLayoutButton",
     "layoutRoot",
     "chapterList",
+    "tocTabButton",
+    "bookmarkTabButton",
+    "bookmarkList",
     "leftPanelResizer",
     "chapterTitle",
     "sourceLine",
@@ -83,6 +88,7 @@ REQUIRED_SNIPPETS = [
     'class="review-panel"',
     'class="fixed-nav"',
     'class="floating-review"',
+    "-webkit-user-select: none",
     'role="separator"',
     "const BOOK_DATA =",
     "const APP_CONFIG =",
@@ -92,9 +98,24 @@ REQUIRED_SNIPPETS = [
     "function move(delta)",
     "function scrollReaderToTop()",
     "function reviewMarkdown()",
+    "function reviewContextForBlock(block, scope)",
+    "review_scope_viewport",
+    "context_excerpt",
     "function updateReview(",
+    "function copyText(text)",
+    "document.execCommand(\"copy\")",
     "reviewStorageKey",
     "localStorage.setItem(reviewStorageKey",
+    "bookmarkStorageKey",
+    "localStorage.setItem(bookmarkStorageKey",
+    "function toggleCurrentBookmark()",
+    "function nearestVisualCenterBlock()",
+    "bookmark_shortcut_title",
+    'event.key.toLowerCase() === "b"',
+    "function navigateToReview(review)",
+    "review-target-highlight",
+    "activeBlock",
+    "block.addEventListener(\"click\"",
     "addEventListener(\"keydown\"",
     "data-edit-comment",
     "data-delete-review",
@@ -228,9 +249,13 @@ def check_data_shape(book_data: dict[str, Any], app_config: dict[str, Any], path
     if locale.startswith("en"):
         if labels.get("review_panel") != "Review Board":
             fail(path, "English reader should use English review panel label")
+        if labels.get("bookmarks") != "Bookmarks":
+            fail(path, "English reader should use English bookmark labels")
     else:
         if labels.get("review_panel") != "审阅板":
             fail(path, "Chinese reader should use Chinese review panel label")
+        if labels.get("bookmarks") != "书签":
+            fail(path, "Chinese reader should use Chinese bookmark labels")
 
 
 def check_reader_html(path: Path) -> None:

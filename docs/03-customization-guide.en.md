@@ -79,6 +79,26 @@ output: ./output/reader.html
 
 This repository uses the subfolder pattern because it has several ready-to-use configs in `config/`. That is a convenience for multi-config projects, not a requirement for every user.
 
+### Package Multiple Review Batches
+
+Multiple configs can serve more than multiple source folders. They can also prepare separate review batches within one project. When handling dozens or ninety-plus materials, this lets a coordinator deliver a browsable, filterable, precisely reviewable package instead of a zip archive plus directory instructions. For example, a coordinator can create a config per topic, role, or delivery scope and produce distinct HTML files:
+
+```yaml
+workspace_root: ..
+source_dir: ./review-batches/batch-a
+include:
+  - "*.md"
+  - "*.txt"
+  - "*.csv"
+output: ./output/batch-a.reader.html
+```
+
+Reviewers open the package assigned to them and return an exported `review.md` to the coordinator. This creates full multi-party review collaboration: multiple people contribute structured notes with file, location, and quote context while a central owner or later AI process consolidates feedback and changes, without exposing the source directory or allowing browser write-back.
+
+A practical collaboration convention can give every package a clear batch or round, give every return a reviewer and batch identifier, and collect `review.md` files centrally after a deadline for organization by file or issue. A few people can manage this with a simple table or agreement.
+
+This is pre-packaging viewing-scope control, not a runtime permission system. Anyone who receives a `reader.html` can read its embedded content, so material that should not be shared must be excluded before packaging.
+
 ### Change Output Path
 
 ```yaml

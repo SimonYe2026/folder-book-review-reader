@@ -97,6 +97,24 @@ review:
     if blank_line_html.count('data-block-type="paragraph"') != 2:
         raise AssertionError("blank_line paragraph mode should group lines until blank lines")
 
+    bookmarkable_markdown = build_reader.render_markdown_basic(
+        "# Heading for bookmark testing\n\nParagraph for bookmark testing.\n\n- List item for bookmark testing.\n\n> Quote for bookmark testing."
+    )
+    for block_type in ["heading", "paragraph", "list-item", "quote"]:
+        if f'data-block-type="{block_type}"' not in bookmarkable_markdown:
+            raise AssertionError(f"Markdown should render bookmarkable {block_type} blocks")
+    code_block_markdown = build_reader.render_markdown_basic("```text\nworkspace_root: .\n```")
+    if 'data-block-type="code-block"' not in code_block_markdown:
+        raise AssertionError("Markdown code blocks should have reviewable coordinates")
+    table_markdown = build_reader.render_markdown_basic("| Key | Value |\n| --- | --- |\n| scope | local |")
+    if 'data-block-type="table"' not in table_markdown:
+        raise AssertionError("Markdown tables should have reviewable coordinates")
+    docx_table_markdown = build_reader.render_markdown_basic(
+        '```docx-table\n{"rows":[[{"text":["cell"],"tables":[]}]]}\n```'
+    )
+    if 'data-block-type="docx-table"' not in docx_table_markdown:
+        raise AssertionError("Converted DOCX tables should have reviewable coordinates")
+
     clean_doc = convert_docs.clean_converted_text(
         "status: ACTIVE\n"
         "module: governance\n"
@@ -208,6 +226,14 @@ review:
     assert_contains(license_file, ["MIT License", "folder-book-reader contributors"])
     assert_contains(ROOT / "README.md", ["Python 3.10 or newer", "Python standard library", "[中文说明](README.zh-CN.md)"])
     assert_contains(ROOT / "README.zh-CN.md", ["Python 3.10 或更高版本", "Python 标准库", "[English README](README.md)"])
+    assert_contains(ROOT / "README.md", ["Review Handoff Packages", "multi-party review collaboration", "shared source editing"])
+    assert_contains(ROOT / "README.zh-CN.md", ["审阅交接包", "多方审阅协作", "多人共同编辑源文件"])
+    assert_contains(ROOT / "docs" / "03-customization-guide.en.md", ["Package Multiple Review Batches", "ninety-plus materials", "runtime permission system"])
+    assert_contains(ROOT / "docs" / "03-customization-guide.zh-CN.md", ["为多个批次打包审阅范围", "九十多份材料", "运行时权限系统"])
+    assert_contains(ROOT / "docs" / "04-user-manual.zh-CN.md", ["## 书签", "## 定位与复查", "点击批复项"])
+    assert_contains(ROOT / "docs" / "04-user-manual.en.md", ["## Bookmarks", "## Locate and Recheck", "Click a review item"])
+    assert_contains(ROOT / "docs" / "07-review-handoff-workflow.zh-CN.md", ["## 两类角色", "## 基本交接链路", "review_round-01_batch-A_reviewer-zhangsan.md"])
+    assert_contains(ROOT / "docs" / "07-review-handoff-workflow.en.md", ["## Two Roles", "## Basic Handoff Flow", "review_round-01_batch-A_reviewer-zhangsan.md"])
 
     (ROOT / "output").mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(dir=ROOT / "output") as temp_root:
@@ -370,6 +396,11 @@ review:
             "leftPanelResizer",
             "rightPanelResizer",
             "toggleTocButton",
+            "bookmarkCurrentButton",
+            "clearBookmarksButton",
+            "tocTabButton",
+            "bookmarkTabButton",
+            "bookmarkList",
             "toggleReviewPanelButton",
             "toolbar-row",
             "syncToolbarHeight",
@@ -388,6 +419,9 @@ review:
             "csv-current-row-review",
             "data-block-type=\\\"csv-row\\\"",
             "function blockQuoteText(block)",
+            "function reviewContextForBlock(block, scope)",
+            "review_scope_viewport",
+            "context_excerpt",
             "block.cells || []",
             "function csvSelectionMeta(selection)",
             "range.intersectsNode(cell)",
@@ -403,8 +437,20 @@ review:
             "resetLayoutButton",
             "Object.assign(state, layoutDefaults)",
             "updateReview(event.target.dataset.editComment, { comment: event.target.value }, false)",
+            "function copyText(text)",
+            "document.execCommand(\"copy\")",
             "state.leftCollapsed",
             "reviewBesideReader",
+            "bookmarkStorageKey",
+            "function toggleCurrentBookmark()",
+            "function nearestVisualCenterBlock()",
+            "bookmark_shortcut_title",
+            'event.key.toLowerCase() === "b"',
+            "function currentBookmarkTarget()",
+            "function navigateToReview(review)",
+            "review-target-highlight",
+            "activeBlock",
+            "block.addEventListener(\"click\"",
         ],
     )
     english_reader = ROOT / "output" / "reader.en.html"
@@ -434,6 +480,8 @@ review:
             "docs/05-security-notes.en.md",
             "docs/06-developer-guide.zh-CN.md",
             "docs/06-developer-guide.en.md",
+            "docs/07-review-handoff-workflow.zh-CN.md",
+            "docs/07-review-handoff-workflow.en.md",
             "快捷键",
             "Keyboard Shortcuts",
             "预期工作流",
@@ -462,6 +510,9 @@ review:
             "docs/06-developer-guide.en.md",
             "Review Board",
             "Copy review.md",
+            "Review Handoff Workflow",
+            "Bookmarks",
+            "Clicking a review item",
         ],
     )
 

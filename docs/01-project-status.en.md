@@ -14,6 +14,8 @@ Its core use cases are:
 - Search, filter, and move through files in the browser.
 - Select text or paragraphs and create review notes for AI-assisted or manual follow-up work.
 - Export a grouped `review.md`.
+- Distribute a large file set as one review handoff package with browsable content, located review notes, and returnable feedback.
+- Let reviewers without AI, Python, repository, or source-folder skills participate using only a modern browser.
 
 It is not:
 
@@ -84,7 +86,11 @@ The generated HTML contains source file content. Do not publicly share generated
 - No current commitment to `.doc` / `.rtf` / `.pdf` / `.epub` support.
 - No automatic redrawing of charts, flowcharts, or ASCII diagrams.
 - No AI result merging.
-- No multi-user collaboration or cloud sync.
+- No shared multi-user editing, real-time state synchronization, or cloud sync.
+
+The current version supports multi-party review collaboration: a coordinator builds separate `reader.html` files for different batches or viewing scopes, multiple reviewers return `review.md` files, and a central owner or later AI process consolidates feedback and decides on changes. The collaboration unit is a review return, not simultaneous source editing.
+
+This turns large-file review from “a zip archive plus fragmented chat feedback” into “a review package plus located, structured returns.” Several reviewers or a small team can use the flow directly. As reviewer count, batches, and rounds increase, assignment, naming, deadlines, centralized collection, and acceptance decisions need supporting project practices. Those are the operational layer of scaling collaboration, not a reason to discount the current reader/review flow.
 
 ## Customization-Friendly Directions
 
